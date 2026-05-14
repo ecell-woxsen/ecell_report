@@ -23,10 +23,7 @@ export default function ReportsPage() {
   );
 
   const canSubmitReport = Boolean(convexUser?.approved && convexUser.departmentId);
-  const reports = useQuery(
-    api.reports.listVisibleForDepartment,
-    convexUser ? { departmentId: convexUser.departmentId } : "skip"
-  );
+  const allReports = useQuery(api.reports.listAll);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -34,7 +31,7 @@ export default function ReportsPage() {
 
   const departments = useQuery(api.departments.listAll);
 
-  if (!reports) {
+  if (!allReports || !convexUser) {
     return (
       <div className="space-y-6">
         <div className="skeleton h-10 w-48" />
@@ -47,7 +44,13 @@ export default function ReportsPage() {
     );
   }
 
-  const filtered = reports.filter((r) => {
+  const visibleReports = allReports.filter(
+    (report) =>
+      report.status === "submitted" ||
+      report.departmentId === convexUser.departmentId
+  );
+
+  const filtered = visibleReports.filter((r) => {
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (deptFilter !== "all" && r.departmentId !== deptFilter) return false;
     if (
