@@ -54,8 +54,8 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Analytics</h1>
-        <p className="text-text-secondary text-sm mt-1">Organization-wide performance insights</p>
+        <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Analytics</h1>
+        <p className="text-text-tertiary text-[13px] mt-0.5">Organization-wide performance insights</p>
       </div>
 
       {/* Summary Cards */}
@@ -70,8 +70,8 @@ export default function AnalyticsPage() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `var(--${s.color}-light, var(--brand-light))`, color: `var(--${s.color}, var(--brand))` }}>
               <s.icon size={20} />
             </div>
-            <div className="text-2xl font-bold text-text-primary">{s.value}</div>
-            <div className="text-xs text-text-tertiary">{s.label}</div>
+            <div className="text-2xl font-bold text-text-primary tracking-tight">{s.value}</div>
+            <div className="text-[11px] text-text-tertiary font-medium mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Submissions by Department */}
         <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm">
-          <h3 className="text-sm font-semibold text-text-primary mb-4">Reports by Department</h3>
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4 tracking-tight">Reports by Department</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={deptSubmissions} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
 
         {/* Report Status Distribution */}
         <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm">
-          <h3 className="text-sm font-semibold text-text-primary mb-4">Report Status Distribution</h3>
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4 tracking-tight">Report Status Distribution</h3>
           <div className="h-64 flex items-center justify-center">
             {statusData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -147,8 +147,8 @@ export default function AnalyticsPage() {
               </span>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-text-primary">{d.name}</span>
-                  <span className="text-xs text-text-tertiary">{d.reports} reports</span>
+                  <span className="text-[13px] font-medium text-text-primary">{d.name}</span>
+                  <span className="text-[11px] text-text-tertiary font-medium">{d.reports} reports</span>
                 </div>
                 <div className="h-2 bg-bg-tertiary rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, (d.reports / Math.max(...deptSubmissions.map(x => x.reports), 1)) * 100)}%`, backgroundColor: d.color }} />

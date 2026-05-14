@@ -25,11 +25,11 @@ export default function NotificationsPage() {
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Notifications</h1>
-          <p className="text-text-secondary text-sm mt-1">{unread.length} unread</p>
+          <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Notifications</h1>
+          <p className="text-text-tertiary text-[13px] mt-0.5">{unread.length} unread</p>
         </div>
         {unread.length > 0 && (
-          <button onClick={() => user && markAllRead({ clerkId: user.id })} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-brand hover:bg-brand-light transition-all">
+          <button onClick={() => user && markAllRead({ clerkId: user.id })} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-semibold text-brand hover:bg-brand-light transition-all">
             <CheckCheck size={14} /> Mark all read
           </button>
         )}
@@ -50,8 +50,8 @@ export default function NotificationsPage() {
                   <Icon size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${n.read ? "text-text-secondary" : "text-text-primary font-medium"}`}>{n.message}</p>
-                  <p className="text-xs text-text-tertiary mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                  <p className={`text-[13px] leading-relaxed ${n.read ? "text-text-secondary" : "text-text-primary font-medium"}`}>{n.message}</p>
+                  <p className="text-[11px] text-text-tertiary mt-1">{new Date(n.createdAt).toLocaleString()}</p>
                 </div>
                 {!n.read && (
                   <button onClick={() => markRead({ notificationId: n._id })} className="p-1.5 rounded-lg hover:bg-brand-light text-text-tertiary hover:text-brand transition-colors shrink-0" title="Mark read">

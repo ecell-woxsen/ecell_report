@@ -51,8 +51,8 @@ export default function OnboardingPage() {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand to-brand-mid flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-xl">EC</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-primary">Complete Your Profile</h1>
-          <p className="text-text-secondary mt-1">Tell us about yourself to get started</p>
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Complete Your Profile</h1>
+          <p className="text-text-tertiary text-[15px] mt-1">Tell us about yourself to get started</p>
         </div>
 
         <form
@@ -60,20 +60,20 @@ export default function OnboardingPage() {
           className="bg-white rounded-2xl border border-border-light shadow-lg p-8 space-y-5"
         >
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
+            <label className="block text-[11px] font-semibold text-text-tertiary mb-2 uppercase tracking-wider">
               Full Name
             </label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-primary text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
+            <label className="block text-[11px] font-semibold text-text-tertiary mb-2 uppercase tracking-wider">
               Phone Number
             </label>
             <input
@@ -81,19 +81,19 @@ export default function OnboardingPage() {
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               placeholder="+91 XXXXX XXXXX"
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-primary text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
+            <label className="block text-[11px] font-semibold text-text-tertiary mb-2 uppercase tracking-wider">
               Year of Study
             </label>
             <select
               value={form.yearOfStudy}
               onChange={(e) => setForm({ ...form, yearOfStudy: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-primary text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
               required
             >
               <option value="">Select year</option>
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
+            <label className="block text-[11px] font-semibold text-text-tertiary mb-2 uppercase tracking-wider">
               Department
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -115,9 +115,9 @@ export default function OnboardingPage() {
                   key={dept._id}
                   type="button"
                   onClick={() => setForm({ ...form, departmentId: dept._id })}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
                     form.departmentId === dept._id
-                      ? "border-brand bg-brand-light text-brand-mid"
+                      ? "border-brand bg-brand-light text-brand-mid shadow-sm"
                       : "border-border bg-white text-text-secondary hover:border-brand/30"
                   }`}
                 >
@@ -129,7 +129,7 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
+            <label className="block text-[11px] font-semibold text-text-tertiary mb-2 uppercase tracking-wider">
               Role
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -146,9 +146,9 @@ export default function OnboardingPage() {
                       requestedRole: role.value as "member" | "department_head",
                     })
                   }
-                  className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                  className={`px-3.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
                     form.requestedRole === role.value
-                      ? "border-brand bg-brand-light text-brand-mid"
+                      ? "border-brand bg-brand-light text-brand-mid shadow-sm"
                       : "border-border bg-white text-text-secondary hover:border-brand/30"
                   }`}
                 >
@@ -161,7 +161,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             disabled={loading || !form.departmentId}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-brand text-white font-semibold text-sm hover:bg-brand-mid transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-semibold text-[15px] hover:bg-brand-mid transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-sm"
           >
             {loading ? (
               <Loader2 size={18} className="animate-spin" />

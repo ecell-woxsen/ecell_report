@@ -19,8 +19,8 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
-        <p className="text-text-secondary text-sm mt-1">Your profile information</p>
+        <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Settings</h1>
+        <p className="text-text-tertiary text-[13px] mt-0.5">Your profile information</p>
       </div>
 
       <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-5">
@@ -29,8 +29,8 @@ export default function SettingsPage() {
             {convexUser.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">{convexUser.name}</h2>
-            <p className="text-sm text-text-tertiary">{convexUser.roles.map(r => r.replace("_", " ")).join(", ")}</p>
+            <h2 className="text-[15px] font-semibold text-text-primary tracking-tight">{convexUser.name}</h2>
+            <p className="text-[11px] text-text-tertiary capitalize mt-0.5">{convexUser.roles.map(r => r.replace("_", " ")).join(", ")}</p>
           </div>
         </div>
 
@@ -46,8 +46,8 @@ export default function SettingsPage() {
               <item.icon size={16} className="text-text-tertiary" />
             </div>
             <div>
-              <p className="text-xs text-text-tertiary">{item.label}</p>
-              <p className="text-sm font-medium text-text-primary">{item.value}</p>
+              <p className="text-[11px] text-text-tertiary font-medium">{item.label}</p>
+              <p className="text-[13px] font-medium text-text-primary mt-0.5">{item.value}</p>
             </div>
           </div>
         ))}

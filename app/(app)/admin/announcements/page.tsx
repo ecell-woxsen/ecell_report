@@ -37,24 +37,24 @@ export default function AnnouncementsAdminPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple text-white text-sm font-medium hover:bg-purple/80 transition-all">
-          <Plus size={16} /> New Announcement
+        <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple text-white text-[13px] font-medium hover:bg-purple/80 transition-all shadow-sm">
+          <Plus size={15} /> New Announcement
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleCreate} className="p-6 rounded-2xl bg-white border border-border-light shadow-sm space-y-4">
           <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">Title</label>
-            <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-purple/20 focus:border-purple" required />
+            <label className="block text-[11px] font-semibold text-text-tertiary mb-1.5 uppercase tracking-wider">Title</label>
+            <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3.5 py-2 rounded-xl border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-purple/20 focus:border-purple" required />
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">Message</label>
-            <textarea value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} rows={3} className="w-full px-3 py-2.5 rounded-xl border border-border text-sm resize-y focus:outline-none focus:ring-2 focus:ring-purple/20 focus:border-purple" required />
+            <label className="block text-[11px] font-semibold text-text-tertiary mb-1.5 uppercase tracking-wider">Message</label>
+            <textarea value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} rows={3} className="w-full px-3.5 py-2 rounded-xl border border-border text-[13px] resize-y focus:outline-none focus:ring-2 focus:ring-purple/20 focus:border-purple" required />
           </div>
           <div className="flex gap-3">
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl border border-border text-sm text-text-secondary">Cancel</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded-xl bg-purple text-white text-sm font-medium hover:bg-purple/80 disabled:opacity-50">
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl border border-border text-[13px] text-text-secondary hover:bg-bg-tertiary transition-all">Cancel</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 rounded-xl bg-purple text-white text-[13px] font-medium hover:bg-purple/80 disabled:opacity-50 transition-all">
               {loading ? <Loader2 size={16} className="animate-spin" /> : "Publish"}
             </button>
           </div>
@@ -62,9 +62,9 @@ export default function AnnouncementsAdminPage() {
       )}
 
       {announcements.length === 0 ? (
-        <div className="p-16 rounded-2xl bg-white border border-border-light text-center">
-          <Megaphone size={48} className="text-text-tertiary mx-auto mb-4" />
-          <p className="text-text-secondary">No announcements yet.</p>
+        <div className="p-14 rounded-2xl bg-white border border-border-light text-center">
+          <Megaphone size={36} className="text-text-tertiary mx-auto mb-3" />
+          <p className="text-text-secondary text-[13px]">No announcements yet.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -72,9 +72,9 @@ export default function AnnouncementsAdminPage() {
             <div key={a._id} className="flex items-start gap-3 p-5 rounded-2xl bg-white border border-border-light shadow-sm">
               <Megaphone size={18} className="text-purple shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-text-primary">{a.title}</h3>
-                <p className="text-sm text-text-secondary mt-1">{a.body}</p>
-                <p className="text-xs text-text-tertiary mt-2">By {a.authorName} · {new Date(a.createdAt).toLocaleDateString()}</p>
+                <h3 className="text-[13px] font-semibold text-text-primary">{a.title}</h3>
+                <p className="text-[13px] text-text-secondary mt-1 leading-relaxed">{a.body}</p>
+                <p className="text-[11px] text-text-tertiary mt-2">By {a.authorName} · {new Date(a.createdAt).toLocaleDateString()}</p>
               </div>
               <button onClick={() => { if (confirm("Delete this announcement?")) removeAnnouncement({ announcementId: a._id }); }}
                 className="p-2 rounded-lg hover:bg-danger-light text-text-tertiary hover:text-danger transition-colors">

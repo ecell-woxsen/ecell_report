@@ -28,16 +28,16 @@ export default function TeamPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Team Directory</h1>
-        <p className="text-text-secondary text-sm mt-1">{approvedUsers.length} members</p>
+      <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Team Directory</h1>
+        <p className="text-text-tertiary text-[13px] mt-0.5">{approvedUsers.length} members</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search members..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search members..." className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand" />
         </div>
-        <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="px-4 py-2.5 rounded-xl border border-border bg-white text-sm text-text-secondary focus:outline-none">
+          <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="px-3.5 py-2 rounded-xl border border-border bg-white text-[13px] text-text-secondary focus:outline-none">
           <option value="all">All Departments</option>
           {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
         </select>
@@ -57,7 +57,7 @@ export default function TeamPage() {
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-text-primary truncate">{user.name}</h3>
+                  <h3 className="text-[13px] font-semibold text-text-primary truncate">{user.name}</h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getDeptColor(user.departmentId) }} />
                     <span className="text-xs text-text-tertiary truncate">{getDeptName(user.departmentId)}</span>
@@ -65,9 +65,9 @@ export default function TeamPage() {
                 </div>
               </div>
               <div className="mt-3 space-y-1">
-                <div className="flex items-center gap-2 text-xs text-text-tertiary"><Mail size={11} /><span className="truncate">{user.email}</span></div>
-                {user.phone && <div className="flex items-center gap-2 text-xs text-text-tertiary"><Phone size={11} />{user.phone}</div>}
-                <div className="flex items-center gap-2 text-xs text-text-tertiary"><Shield size={11} />{user.roles.map(r => r.replace("_", " ")).join(", ")}</div>
+                <div className="flex items-center gap-2 text-[11px] text-text-tertiary"><Mail size={11} /><span className="truncate">{user.email}</span></div>
+                {user.phone && <div className="flex items-center gap-2 text-[11px] text-text-tertiary"><Phone size={11} />{user.phone}</div>}
+                <div className="flex items-center gap-2 text-[11px] text-text-tertiary"><Shield size={11} />{user.roles.map(r => r.replace("_", " ")).join(", ")}</div>
               </div>
             </div>
           ))}

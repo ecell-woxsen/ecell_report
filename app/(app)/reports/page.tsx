@@ -9,12 +9,10 @@ import {
   FileText,
   Plus,
   Search,
-  Filter,
   CheckCircle2,
   Edit3,
   ArrowRight,
   Calendar,
-  MessageSquare,
 } from "lucide-react";
 
 export default function ReportsPage() {
@@ -73,10 +71,10 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Reports</h1>
-          <p className="text-text-secondary text-sm mt-1">
+          <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Reports</h1>
+          <p className="text-text-tertiary text-[13px] mt-0.5">
             {isCoreTeam
               ? "All department reports"
               : "Your department's reports"}
@@ -85,9 +83,9 @@ export default function ReportsPage() {
         {isDeptHead && (
           <Link
             href="/reports/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-medium hover:bg-brand-mid transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand text-white text-[13px] font-medium hover:bg-brand-mid transition-all shadow-sm"
           >
-            <Plus size={16} />
+            <Plus size={15} />
             New Report
           </Link>
         )}
@@ -97,21 +95,21 @@ export default function ReportsPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search
-            size={16}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary"
+            size={15}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search reports..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-border bg-white text-sm text-text-secondary focus:outline-none focus:ring-2 focus:ring-brand/20"
+          className="px-3.5 py-2 rounded-xl border border-border bg-white text-[13px] text-text-secondary focus:outline-none focus:ring-2 focus:ring-brand/20"
         >
           <option value="all">All Status</option>
           <option value="submitted">Submitted</option>
@@ -121,7 +119,7 @@ export default function ReportsPage() {
           <select
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-border bg-white text-sm text-text-secondary focus:outline-none focus:ring-2 focus:ring-brand/20"
+            className="px-3.5 py-2 rounded-xl border border-border bg-white text-[13px] text-text-secondary focus:outline-none focus:ring-2 focus:ring-brand/20"
           >
             <option value="all">All Departments</option>
             {departments.map((d) => (
@@ -135,12 +133,12 @@ export default function ReportsPage() {
 
       {/* Report List */}
       {filtered.length === 0 ? (
-        <div className="p-16 rounded-2xl bg-white border border-border-light text-center">
-          <FileText size={48} className="text-text-tertiary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text-primary mb-2">
+        <div className="p-14 rounded-2xl bg-white border border-border-light text-center">
+          <FileText size={36} className="text-text-tertiary mx-auto mb-3" />
+          <h3 className="text-[15px] font-semibold text-text-primary mb-1.5 tracking-tight">
             No reports found
           </h3>
-          <p className="text-text-secondary text-sm">
+          <p className="text-text-secondary text-[13px]">
             {isDeptHead
               ? "Start by creating your first weekly report."
               : "No reports match your filters."}
@@ -168,11 +166,11 @@ export default function ReportsPage() {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-sm text-text-primary">
+                  <span className="font-semibold text-[13px] text-text-primary">
                     {report.departmentName}
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
                       report.status === "submitted"
                         ? "bg-success-bg text-success-text"
                         : "bg-warn-light text-warn"
@@ -186,7 +184,7 @@ export default function ReportsPage() {
                     {report.status === "submitted" ? "Submitted" : "Draft"}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-text-tertiary">
+                <div className="flex items-center gap-3 text-[11px] text-text-tertiary">
                   <span className="flex items-center gap-1">
                     <Calendar size={11} />
                     {report.weekLabel}
