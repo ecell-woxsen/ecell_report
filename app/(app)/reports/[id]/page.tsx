@@ -32,9 +32,9 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
   const sectionComments = (key: string) => comments?.filter(c => c.sectionKey === key && !c.parentId) || [];
 
   return (
-    <div className="max-w-[900px] mx-auto animate-fade-in">
+    <div className="max-w-[900px] mx-auto animate-fade-in print:max-w-none print:m-0 print:p-0">
       {/* Back */}
-      <Link href="/reports" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-primary mb-6 transition-colors">
+      <Link href="/reports" className="print:hidden inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-primary mb-6 transition-colors">
         <ArrowLeft size={16} /> Back to Reports
       </Link>
 
@@ -46,6 +46,9 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
             <p className="text-white/80 text-sm mt-1">{report.weekLabel}</p>
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={() => window.print()} className="print:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors">
+              <Download size={13} /> Download PDF
+            </button>
             {report.status === "submitted" && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 text-white text-xs font-medium">
                 <CheckCircle2 size={13} /> Submitted
@@ -68,24 +71,28 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
           const secComments = sectionComments(section.key);
           return (
             <div key={section.key} className="rounded-2xl bg-white border border-border-light shadow-sm overflow-hidden">
-              <button onClick={() => setCollapsed(p => ({ ...p, [section.key]: !p[section.key] }))} className="w-full flex items-center gap-3 p-5 text-left hover:bg-bg-tertiary/50 transition-colors">
-                <span className="w-7 h-7 rounded-lg bg-brand-light text-brand-mid flex items-center justify-center text-xs font-bold">{idx + 1}</span>
+              <button onClick={() => setCollapsed(p => ({ ...p, [section.key]: !p[section.key] }))} className="w-full flex items-center gap-3 p-5 text-left hover:bg-bg-tertiary/50 transition-colors print:pointer-events-none">
+                <span className="w-7 h-7 rounded-lg bg-brand-light text-brand-mid flex items-center justify-center text-xs font-bold print:border print:border-brand-mid/20">{idx + 1}</span>
                 <span className="flex-1 text-sm font-semibold text-text-primary">{section.title}</span>
-                {secComments.length > 0 && <span className="flex items-center gap-1 text-xs text-purple"><MessageSquare size={12} />{secComments.length}</span>}
-                {collapsed[section.key] ? <ChevronDown size={16} className="text-text-tertiary" /> : <ChevronUp size={16} className="text-text-tertiary" />}
+                {secComments.length > 0 && <span className="print:hidden flex items-center gap-1 text-xs text-purple"><MessageSquare size={12} />{secComments.length}</span>}
+                {collapsed[section.key] ? <ChevronDown size={16} className="text-text-tertiary print:hidden" /> : <ChevronUp size={16} className="text-text-tertiary print:hidden" />}
               </button>
               {!collapsed[section.key] && (
                 <div className="px-5 pb-5">
                   <SectionViewer section={section} value={val} />
                   {/* Comments */}
                   {secComments.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-border-light space-y-3">
+                    <div className="print:hidden mt-4 pt-4 border-t border-border-light space-y-3">
                       {secComments.map(c => (
                         <CommentThread key={c._id} comment={c} replies={comments?.filter(r => r.parentId === c._id) || []} reportId={report._id} sectionKey={section.key} />
                       ))}
                     </div>
                   )}
-                  {isCoreTeam && <AddComment reportId={report._id} sectionKey={section.key} />}
+                  {isCoreTeam && (
+                    <div className="print:hidden">
+                      <AddComment reportId={report._id} sectionKey={section.key} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

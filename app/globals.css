@@ -255,3 +255,30 @@
     -webkit-backdrop-filter: blur(20px);
   }
 }
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  aside, header {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  .card, .rounded-2xl, tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
