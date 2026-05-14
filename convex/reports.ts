@@ -117,6 +117,18 @@ export const listByDepartment = query({
   },
 });
 
+export const listVisibleForDepartment = query({
+  args: { departmentId: v.optional(v.id("departments")) },
+  handler: async (ctx, args) => {
+    const reports = await ctx.db.query("reports").order("desc").collect();
+    return reports.filter(
+      (report) =>
+        report.status === "submitted" ||
+        (args.departmentId !== undefined && report.departmentId === args.departmentId)
+    );
+  },
+});
+
 export const listAll = query({
   args: {},
   handler: async (ctx) => {

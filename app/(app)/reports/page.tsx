@@ -22,20 +22,11 @@ export default function ReportsPage() {
     user?.id ? { clerkId: user.id } : "skip"
   );
 
-  const isCoreTeam = convexUser?.roles?.some((r) =>
-    ["core_team", "president", "admin"].includes(r)
+  const canSubmitReport = Boolean(convexUser?.approved && convexUser.departmentId);
+  const reports = useQuery(
+    api.reports.listVisibleForDepartment,
+    convexUser ? { departmentId: convexUser.departmentId } : "skip"
   );
-  const isDeptHead = convexUser?.roles?.includes("department_head");
-
-  const allReports = useQuery(api.reports.listAll);
-  const deptReports = useQuery(
-    api.reports.listByDepartment,
-    convexUser?.departmentId
-      ? { departmentId: convexUser.departmentId }
-      : "skip"
-  );
-
-  const reports = isCoreTeam ? allReports : deptReports;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -75,12 +66,10 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Reports</h1>
           <p className="text-text-tertiary text-[13px] mt-0.5">
-            {isCoreTeam
-              ? "All department reports"
-              : "Your department's reports"}
+            Submitted reports across departments, plus your department&apos;s drafts
           </p>
         </div>
-        {isDeptHead && (
+        {canSubmitReport && (
           <Link
             href="/reports/new"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand text-white text-[13px] font-medium hover:bg-brand-mid transition-all shadow-sm"
@@ -115,7 +104,7 @@ export default function ReportsPage() {
           <option value="submitted">Submitted</option>
           <option value="draft">Draft</option>
         </select>
-        {isCoreTeam && departments && (
+        {departments && (
           <select
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
@@ -139,8 +128,8 @@ export default function ReportsPage() {
             No reports found
           </h3>
           <p className="text-text-secondary text-[13px]">
-            {isDeptHead
-              ? "Start by creating your first weekly report."
+            {canSubmitReport
+              ? "Start by creating a report or adjust your filters."
               : "No reports match your filters."}
           </p>
         </div>
@@ -150,7 +139,7 @@ export default function ReportsPage() {
             <Link
               key={report._id}
               href={
-                report.status === "draft" && isDeptHead
+                report.status === "draft" && report.departmentId === convexUser?.departmentId
                   ? `/reports/${report._id}/edit`
                   : `/reports/${report._id}`
               }

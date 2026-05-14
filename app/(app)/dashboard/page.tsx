@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { useEffect } from "react";
 import Link from "next/link";
 import {
-  FileText, CheckCircle2, Clock, AlertTriangle, ArrowRight,
+  FileText, CheckCircle2, AlertTriangle, ArrowRight,
   Plus, Eye, Edit3, Building2, BarChart3, Megaphone,
 } from "lucide-react";
 
@@ -47,15 +47,15 @@ export default function DashboardPage() {
 
   const isPresident = convexUser.roles.some((r) => ["president", "admin"].includes(r));
   const isCoreTeam = convexUser.roles.some((r) => ["core_team", "president", "admin"].includes(r));
-  const isDeptHead = convexUser.roles.includes("department_head");
 
-  if (isPresident || isCoreTeam) return <LeadershipDashboard />;
-  if (isDeptHead) return <DeptHeadDashboard clerkId={user!.id} />;
-  return <MemberDashboard clerkId={user!.id} />;
+  if (isPresident || isCoreTeam) {
+    return <LeadershipDashboard canSubmitReport={Boolean(convexUser.departmentId)} />;
+  }
+  return <DepartmentDashboard clerkId={user!.id} />;
 }
 
 /* ── Leadership Dashboard ─────────────────────────────────────────── */
-function LeadershipDashboard() {
+function LeadershipDashboard({ canSubmitReport }: { canSubmitReport: boolean }) {
   const weekStart = getCurrentWeekStart();
   const orgStatus = useQuery(api.reports.getOrgStatusThisWeek, { weekStart });
   const announcements = useQuery(api.announcements.listActive);
@@ -74,6 +74,11 @@ function LeadershipDashboard() {
           <p className="text-text-tertiary text-[13px] mt-0.5">Week of {getWeekLabel()}</p>
         </div>
         <div className="flex gap-2.5">
+          {canSubmitReport && (
+            <Link href="/reports/new" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand text-white text-[13px] font-medium hover:bg-brand-mid transition-all shadow-sm">
+              <Plus size={15} /> New Report
+            </Link>
+          )}
           <Link href="/reports" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-[13px] font-medium text-text-secondary hover:bg-white hover:shadow-sm transition-all">
             <FileText size={15} /> All Reports
           </Link>
@@ -109,8 +114,8 @@ function LeadershipDashboard() {
   );
 }
 
-/* ── Department Head Dashboard ────────────────────────────────────── */
-function DeptHeadDashboard({ clerkId }: { clerkId: string }) {
+/* ── Department Dashboard ─────────────────────────────────────────── */
+function DepartmentDashboard({ clerkId }: { clerkId: string }) {
   const convexUser = useQuery(api.users.getByClerkId, { clerkId });
   const weekStart = getCurrentWeekStart();
   const currentDraft = useQuery(api.reports.getCurrentDraft, convexUser?.departmentId ? { departmentId: convexUser.departmentId, weekStart } : "skip");
@@ -177,50 +182,6 @@ function DeptHeadDashboard({ clerkId }: { clerkId: string }) {
       )}
 
       <AnnouncementsList announcements={announcements} />
-    </div>
-  );
-}
-
-/* ── Member Dashboard ─────────────────────────────────────────────── */
-function MemberDashboard({ clerkId }: { clerkId: string }) {
-  const convexUser = useQuery(api.users.getByClerkId, { clerkId });
-  const deptReports = useQuery(api.reports.listByDepartment, convexUser?.departmentId ? { departmentId: convexUser.departmentId } : "skip");
-  const announcements = useQuery(api.announcements.listActive);
-
-  if (!convexUser) return <DashboardSkeleton />;
-  const submittedReports = deptReports?.filter((r) => r.status === "submitted").slice(0, 6) || [];
-
-  return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Dashboard</h1>
-        <p className="text-text-tertiary text-[13px] mt-0.5">Welcome back, {convexUser.name}</p>
-      </div>
-
-      <AnnouncementsList announcements={announcements} />
-
-      <div>
-        <h2 className="text-[15px] font-semibold text-text-primary mb-4 tracking-tight">Department Reports</h2>
-        {submittedReports.length === 0 ? (
-          <div className="p-14 rounded-2xl bg-white border border-border-light text-center">
-            <FileText size={36} className="text-text-tertiary mx-auto mb-3" />
-            <p className="text-text-secondary text-[13px]">No reports submitted yet.</p>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {submittedReports.map((report) => (
-              <Link key={report._id} href={`/reports/${report._id}`} className="p-5 rounded-2xl bg-white border border-border-light hover:shadow-md transition-all">
-                <div className="flex items-start justify-between mb-2">
-                  <span className="text-[13px] font-semibold text-text-primary">{report.weekLabel}</span>
-                  <StatusBadge status={report.status} />
-                </div>
-                <p className="text-[11px] text-text-tertiary">{report.departmentName}</p>
-                {report.submittedAt && <p className="text-[11px] text-text-tertiary mt-0.5">Submitted {new Date(report.submittedAt).toLocaleDateString()}</p>}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
