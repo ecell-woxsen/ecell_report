@@ -11,6 +11,7 @@ export default function SignUpPage() {
           <p className="text-text-secondary mt-1">Create your account to get started</p>
         </div>
         <SignUp
+          forceRedirectUrl="/onboarding"
           fallbackRedirectUrl="/onboarding"
           appearance={{
             elements: {

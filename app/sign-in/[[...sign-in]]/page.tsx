@@ -11,6 +11,7 @@ export default function SignInPage() {
           <p className="text-text-secondary mt-1">Sign in to E-Cell Reports</p>
         </div>
         <SignIn
+          forceRedirectUrl="/dashboard"
           fallbackRedirectUrl="/dashboard"
           appearance={{
             elements: {

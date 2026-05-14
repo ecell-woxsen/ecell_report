@@ -13,7 +13,11 @@ export default function Providers({ children }: { children: ReactNode }) {
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
-      afterSignOutUrl="/"
+      signInForceRedirectUrl="/dashboard"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/onboarding"
+      afterSignOutUrl="/sign-in"
+      afterMultiSessionSingleSignOutUrl="/sign-in"
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {children}
