@@ -275,6 +275,7 @@ async function exportReportToPdf({
   ]);
 
   const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+  const logoDataUrl = await loadPublicImageAsDataUrl("/ecell-logo.png");
   const ctx: PdfContext = {
     doc,
     pageWidth: doc.internal.pageSize.getWidth(),
@@ -290,7 +291,7 @@ async function exportReportToPdf({
     records: getSectionRecordCount(section, sections[section.key]),
   }));
 
-  addPdfCover(ctx, report, sectionSummaries, comments);
+  addPdfCover(ctx, report, sectionSummaries, comments, logoDataUrl);
   addPdfSectionIndex(ctx, autoTable, sectionSummaries);
 
   const metricSections = enabledSections.filter((section) => section.type === "metrics_grid");
@@ -359,7 +360,7 @@ async function exportReportToPdf({
     );
   }
 
-  stampPdfPages(ctx, report);
+  stampPdfPages(ctx, report, logoDataUrl);
   doc.save(`${toFileSlug(report.departmentName)}_${toFileSlug(report.weekLabel)}_weekly_report.pdf`);
 }
 
@@ -374,7 +375,18 @@ const pdfColors = {
   white: [255, 255, 255],
 };
 
-function addPdfCover(ctx: PdfContext, report: any, sectionSummaries: any[], comments: any[]) {
+async function loadPublicImageAsDataUrl(src: string) {
+  const response = await fetch(src);
+  const blob = await response.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function addPdfCover(ctx: PdfContext, report: any, sectionSummaries: any[], comments: any[], logoDataUrl?: string) {
   const { doc, pageWidth, margin } = ctx;
   const completedSections = sectionSummaries.filter((section) => section.status === "Complete").length;
   const tableRows = sectionSummaries.reduce((total, section) => total + (typeof section.records === "number" ? section.records : 0), 0);
@@ -394,6 +406,11 @@ function addPdfCover(ctx: PdfContext, report: any, sectionSummaries: any[], comm
   doc.setFontSize(13);
   doc.text(report.weekLabel, margin, 104);
   doc.text(`Submitted by ${report.departmentHeadName}`, margin, 126);
+  if (logoDataUrl) {
+    doc.setFillColor(...pdfColors.white);
+    doc.roundedRect(pageWidth - margin - 92, 31, 92, 92, 12, 12, "F");
+    doc.addImage(logoDataUrl, "PNG", pageWidth - margin - 86, 37, 80, 80);
+  }
 
   ctx.cursorY = 190;
   addPdfMetaGrid(ctx, [
@@ -551,7 +568,7 @@ function ensurePdfSpace(ctx: PdfContext, needed: number) {
   if (ctx.cursorY + needed > ctx.pageHeight - 62) addPdfPage(ctx);
 }
 
-function stampPdfPages(ctx: PdfContext, report: any) {
+function stampPdfPages(ctx: PdfContext, report: any, logoDataUrl?: string) {
   const { doc, pageWidth, pageHeight, margin } = ctx;
   const totalPages = doc.getNumberOfPages();
   for (let page = 1; page <= totalPages; page += 1) {
@@ -561,10 +578,13 @@ function stampPdfPages(ctx: PdfContext, report: any) {
       doc.rect(0, 0, pageWidth, 58, "F");
       doc.setDrawColor(...pdfColors.border);
       doc.line(margin, 58, pageWidth - margin, 58);
+      if (logoDataUrl) {
+        doc.addImage(logoDataUrl, "PNG", margin, 16, 28, 28);
+      }
       doc.setTextColor(...pdfColors.brandDark);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text(`${report.departmentName} Weekly Report`, margin, 36);
+      doc.text(`${report.departmentName} Weekly Report`, logoDataUrl ? margin + 38 : margin, 36);
       doc.setTextColor(...pdfColors.muted);
       doc.setFont("helvetica", "normal");
       doc.text(report.weekLabel, pageWidth - margin, 36, { align: "right" });

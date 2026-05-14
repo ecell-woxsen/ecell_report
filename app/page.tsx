@@ -2,6 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
+import { ECellLogo } from "@/components/ecell-logo";
 import {
   BarChart3,
   FileText,
@@ -23,9 +24,7 @@ export default function HomePage() {
       <nav className="sticky top-0 z-50 glass border-b border-border-light">
         <div className="max-w-[1140px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-brand-mid flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-sm">EC</span>
-            </div>
+            <ECellLogo size={40} className="shadow-sm" priority />
             <span className="font-semibold text-lg text-text-primary tracking-tight">
               E-Cell Reports
             </span>
@@ -269,9 +268,7 @@ export default function HomePage() {
       <footer className="py-10 bg-white border-t border-border-light">
         <div className="max-w-[1140px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand to-brand-mid flex items-center justify-center">
-              <span className="text-white font-bold text-[10px]">EC</span>
-            </div>
+            <ECellLogo size={30} className="rounded-lg" />
             <span className="text-sm text-text-secondary font-medium">
               E-Cell · Woxsen University
             </span>

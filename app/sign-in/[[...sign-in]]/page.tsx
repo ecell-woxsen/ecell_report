@@ -1,13 +1,12 @@
 import { SignIn } from "@clerk/nextjs";
+import { ECellLogo } from "@/components/ecell-logo";
 
 export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-light/30 via-bg-primary to-bg-primary p-6">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand to-brand-mid flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">EC</span>
-          </div>
+          <ECellLogo size={72} className="mx-auto mb-4 rounded-2xl shadow-sm" priority />
           <h1 className="text-2xl font-bold text-text-primary">Welcome Back</h1>
           <p className="text-text-secondary mt-1">Sign in to E-Cell Reports</p>
         </div>

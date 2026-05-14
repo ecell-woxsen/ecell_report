@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { Building2, ChevronRight, Loader2 } from "lucide-react";
+import { ECellLogo } from "@/components/ecell-logo";
 
 export default function OnboardingPage() {
   const { user } = useUser();
@@ -48,9 +49,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-light/30 via-bg-primary to-bg-primary p-6">
       <div className="w-full max-w-lg animate-fade-in">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand to-brand-mid flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">EC</span>
-          </div>
+          <ECellLogo size={72} className="mx-auto mb-4 rounded-2xl shadow-sm" priority />
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Complete Your Profile</h1>
           <p className="text-text-tertiary text-[15px] mt-1">Tell us about yourself to get started</p>
         </div>

@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
+import { ECellLogo } from "@/components/ecell-logo";
 import {
   LayoutDashboard,
   FileText,
@@ -18,7 +19,6 @@ import {
   Menu,
   X,
   ChevronRight,
-  Clock,
 } from "lucide-react";
 
 function NavItem({
@@ -84,9 +84,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-primary p-6">
         <div className="text-center max-w-sm animate-fade-in">
-          <div className="w-20 h-20 rounded-3xl bg-warn-light flex items-center justify-center mx-auto mb-6">
-            <Clock size={36} className="text-warn" />
-          </div>
+          <ECellLogo size={88} className="mx-auto mb-6 rounded-3xl shadow-sm" priority />
           <h1 className="text-2xl font-bold text-text-primary mb-3 tracking-tight">
             Pending Approval
           </h1>
@@ -140,9 +138,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Logo */}
         <div className="h-16 px-5 flex items-center justify-between border-b border-border-light">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-brand-mid flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-sm">EC</span>
-            </div>
+            <ECellLogo size={38} className="shadow-sm" priority />
             <div>
               <span className="font-semibold text-[15px] text-text-primary tracking-tight block leading-tight">
                 E-Cell
