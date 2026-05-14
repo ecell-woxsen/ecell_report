@@ -4,8 +4,8 @@ import { useUser, UserButton } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ReactNode, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useEffect, useState } from "react";
 import { ECellLogo } from "@/components/ecell-logo";
 import {
   LayoutDashboard,
@@ -59,6 +59,7 @@ function NavItem({
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user } = useUser();
+  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -78,7 +79,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     ["core_team", "president", "admin"].includes(r)
   );
 
+  const needsOnboarding =
+    convexUser === null ||
+    Boolean(convexUser && !convexUser.approved && !convexUser.departmentId);
   const isPending = convexUser && !convexUser.approved;
+
+  useEffect(() => {
+    if (user?.id && needsOnboarding) {
+      router.replace("/onboarding");
+    }
+  }, [needsOnboarding, router, user?.id]);
+
+  if (needsOnboarding) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary p-6">
+        <div className="text-center max-w-sm animate-fade-in">
+          <ECellLogo size={88} className="mx-auto mb-6 rounded-3xl shadow-sm" priority />
+          <h1 className="text-2xl font-bold text-text-primary mb-3 tracking-tight">
+            Profile Setup
+          </h1>
+          <p className="text-text-secondary text-[15px] leading-relaxed">
+            Taking you to complete your profile.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isPending) {
     return (

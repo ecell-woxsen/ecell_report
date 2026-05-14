@@ -98,6 +98,8 @@ export const completeOnboarding = mutation({
     yearOfStudy: v.string(),
     departmentId: v.id("departments"),
     requestedRole: v.union(v.literal("member"), v.literal("department_head")),
+    email: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -109,23 +111,29 @@ export const completeOnboarding = mutation({
       return await ctx.db.insert("users", {
         clerkId: args.clerkId,
         name: args.name,
-        email: "",
+        email: args.email || "",
         phone: args.phone,
         yearOfStudy: args.yearOfStudy,
         departmentId: args.departmentId,
         roles: [args.requestedRole],
         approved: false,
+        avatarUrl: args.avatarUrl,
         createdAt: Date.now(),
       });
     }
 
-    await ctx.db.patch(user._id, {
+    const updates: Partial<Doc<"users">> = {
       name: args.name,
       phone: args.phone,
       yearOfStudy: args.yearOfStudy,
       departmentId: args.departmentId,
       roles: [args.requestedRole],
-    });
+    };
+
+    if (args.email) updates.email = args.email;
+    if (args.avatarUrl) updates.avatarUrl = args.avatarUrl;
+
+    await ctx.db.patch(user._id, updates);
     return user._id;
   },
 });

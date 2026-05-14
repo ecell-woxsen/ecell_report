@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { Building2, ChevronRight, Loader2 } from "lucide-react";
@@ -13,30 +13,78 @@ export default function OnboardingPage() {
   const { user } = useUser();
   const router = useRouter();
   const departments = useQuery(api.departments.listAll);
+  const convexUser = useQuery(
+    api.users.getByClerkId,
+    user?.id ? { clerkId: user.id } : "skip"
+  );
   const completeOnboarding = useMutation(api.users.completeOnboarding);
+  const upsertFromClerk = useMutation(api.users.upsertFromClerk);
+  const seedDepts = useMutation(api.departments.seed);
+  const seedTemplates = useMutation(api.templates.seedTemplates);
 
-  const [form, setForm] = useState({
-    name: user?.fullName || "",
-    phone: "",
-    yearOfStudy: "",
-    departmentId: "" as string,
-    requestedRole: "member" as "member" | "department_head",
-  });
+  const [form, setForm] = useState<{
+    name?: string;
+    phone?: string;
+    yearOfStudy?: string;
+    departmentId?: string;
+    requestedRole?: "member" | "department_head";
+  }>({});
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (departments !== undefined && departments.length === 0) {
+      seedDepts().then(() => seedTemplates()).catch(console.error);
+    }
+  }, [departments, seedDepts, seedTemplates]);
+
+  useEffect(() => {
+    if (!convexUser) return;
+
+    if (convexUser.departmentId && convexUser.phone && convexUser.yearOfStudy) {
+      router.replace("/dashboard");
+    }
+  }, [convexUser, router]);
+
+  const formName =
+    form.name ??
+    convexUser?.name ??
+    user?.fullName ??
+    user?.primaryEmailAddress?.emailAddress ??
+    "";
+  const formPhone = form.phone ?? convexUser?.phone ?? "";
+  const formYearOfStudy = form.yearOfStudy ?? convexUser?.yearOfStudy ?? "";
+  const formDepartmentId = form.departmentId ?? convexUser?.departmentId ?? "";
+  const formRequestedRole =
+    form.requestedRole ??
+    (convexUser?.roles.includes("department_head")
+      ? "department_head"
+      : "member");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !form.departmentId) return;
+    if (!user || !formDepartmentId) return;
 
     setLoading(true);
     try {
+      const email =
+        user.primaryEmailAddress?.emailAddress ||
+        user.emailAddresses[0]?.emailAddress ||
+        "";
+
+      await upsertFromClerk({
+        clerkId: user.id,
+        name: formName,
+        email,
+        avatarUrl: user.imageUrl,
+      });
+
       await completeOnboarding({
         clerkId: user.id,
-        name: form.name,
-        phone: form.phone,
-        yearOfStudy: form.yearOfStudy,
-        departmentId: form.departmentId as Id<"departments">,
-        requestedRole: form.requestedRole,
+        name: formName,
+        phone: formPhone,
+        yearOfStudy: formYearOfStudy,
+        departmentId: formDepartmentId as Id<"departments">,
+        requestedRole: formRequestedRole,
       });
       router.push("/dashboard");
     } catch (error) {
@@ -64,7 +112,7 @@ export default function OnboardingPage() {
             </label>
             <input
               type="text"
-              value={form.name}
+              value={formName}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
               required
@@ -77,7 +125,7 @@ export default function OnboardingPage() {
             </label>
             <input
               type="tel"
-              value={form.phone}
+              value={formPhone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               placeholder="+91 XXXXX XXXXX"
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
@@ -90,7 +138,7 @@ export default function OnboardingPage() {
               Year of Study
             </label>
             <select
-              value={form.yearOfStudy}
+              value={formYearOfStudy}
               onChange={(e) => setForm({ ...form, yearOfStudy: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
               required
@@ -109,13 +157,17 @@ export default function OnboardingPage() {
               Department
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {departments?.map((dept) => (
+              {departments === undefined || departments.length === 0 ? (
+                <div className="col-span-2 rounded-xl border border-border bg-bg-primary px-4 py-3 text-[13px] text-text-tertiary">
+                  Preparing departments...
+                </div>
+              ) : departments.map((dept) => (
                 <button
                   key={dept._id}
                   type="button"
                   onClick={() => setForm({ ...form, departmentId: dept._id })}
                   className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
-                    form.departmentId === dept._id
+                    formDepartmentId === dept._id
                       ? "border-brand bg-brand-light text-brand-mid shadow-sm"
                       : "border-border bg-white text-text-secondary hover:border-brand/30"
                   }`}
@@ -146,7 +198,7 @@ export default function OnboardingPage() {
                     })
                   }
                   className={`px-3.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
-                    form.requestedRole === role.value
+                    formRequestedRole === role.value
                       ? "border-brand bg-brand-light text-brand-mid shadow-sm"
                       : "border-border bg-white text-text-secondary hover:border-brand/30"
                   }`}
@@ -159,7 +211,7 @@ export default function OnboardingPage() {
 
           <button
             type="submit"
-            disabled={loading || !form.departmentId}
+            disabled={loading || !formDepartmentId || !departments?.length}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-semibold text-[15px] hover:bg-brand-mid transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-sm"
           >
             {loading ? (
