@@ -7,10 +7,11 @@ import { use, useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import {
-  CheckCircle2, Calendar, User, MessageSquare, Send,
+  AlertCircle, CheckCircle2, Calendar, User, MessageSquare, Send,
   ArrowLeft, Download, ChevronDown, ChevronUp, FileSpreadsheet
 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
+import { isLeadershipUser } from "@/lib/permissions";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -64,13 +65,32 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [exportingPdf, setExportingPdf] = useState(false);
 
-  if (!report || !template) {
+  if (report === undefined || (report && template === undefined)) {
     return <div className="space-y-4">{[1,2,3].map(i=><div key={i} className="skeleton h-32 rounded-2xl" />)}</div>;
+  }
+
+  if (!report || !template) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="max-w-sm text-center animate-fade-in">
+          <AlertCircle size={34} className="text-warn mx-auto mb-4" />
+          <h1 className="text-lg font-semibold text-text-primary mb-2">
+            Report unavailable
+          </h1>
+          <p className="text-sm text-text-secondary mb-5">
+            You do not have access to this report, or it no longer exists.
+          </p>
+          <Link href="/reports" className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-border text-[13px] font-medium text-text-secondary hover:bg-bg-tertiary transition-all">
+            Back to Reports
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const sections = (report.sections || {}) as Record<string, any>;
   const enabledSections = template.sections.filter(s => s.enabled).sort((a, b) => a.order - b.order);
-  const isCoreTeam = convexUser?.roles?.some(r => ["core_team", "president", "admin"].includes(r));
+  const isCoreTeam = isLeadershipUser(convexUser);
   const sectionComments = (key: string) => comments?.filter(c => c.sectionKey === key && !c.parentId) || [];
 
   const exportToExcel = () => {
@@ -1209,8 +1229,6 @@ function AddComment({ reportId, sectionKey }: { reportId: Id<"reports">; section
     if (!text.trim() || !user || !convexUser) return;
     await addComment({
       reportId, sectionKey,
-      authorClerkId: user.id,
-      authorName: convexUser.name,
       text: text.trim(),
       tag: tag ? tag as any : undefined,
     });

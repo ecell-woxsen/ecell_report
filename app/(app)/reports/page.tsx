@@ -6,6 +6,11 @@ import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 import { useState } from "react";
 import {
+  canEditReportForDepartment,
+  canSubmitDepartmentReport,
+  isLeadershipUser,
+} from "@/lib/permissions";
+import {
   FileText,
   Plus,
   Search,
@@ -22,7 +27,8 @@ export default function ReportsPage() {
     user?.id ? { clerkId: user.id } : "skip"
   );
 
-  const canSubmitReport = Boolean(convexUser?.approved && convexUser.departmentId);
+  const canSubmitReport = canSubmitDepartmentReport(convexUser);
+  const canViewAllDepartments = isLeadershipUser(convexUser);
   const allReports = useQuery(api.reports.listAll);
 
   const [search, setSearch] = useState("");
@@ -44,13 +50,11 @@ export default function ReportsPage() {
     );
   }
 
-  const visibleReports = allReports.filter(
-    (report) =>
-      report.status === "submitted" ||
-      report.departmentId === convexUser.departmentId
-  );
+  const availableDepartments = canViewAllDepartments
+    ? departments
+    : departments?.filter((department) => department._id === convexUser.departmentId);
 
-  const filtered = visibleReports.filter((r) => {
+  const filtered = allReports.filter((r) => {
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (deptFilter !== "all" && r.departmentId !== deptFilter) return false;
     if (
@@ -69,7 +73,9 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">Reports</h1>
           <p className="text-text-tertiary text-[13px] mt-0.5">
-            Submitted reports across departments, plus your department&apos;s drafts
+            {canViewAllDepartments
+              ? "Organization-wide report view across departments"
+              : "Read-only submitted reports for your department"}
           </p>
         </div>
         {canSubmitReport && (
@@ -107,14 +113,14 @@ export default function ReportsPage() {
           <option value="submitted">Submitted</option>
           <option value="draft">Draft</option>
         </select>
-        {departments && (
+        {availableDepartments && availableDepartments.length > 1 && (
           <select
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
             className="px-3.5 py-2 rounded-xl border border-border bg-white text-[13px] text-text-secondary focus:outline-none focus:ring-2 focus:ring-brand/20"
           >
             <option value="all">All Departments</option>
-            {departments.map((d) => (
+            {availableDepartments.map((d) => (
               <option key={d._id} value={d._id}>
                 {d.name}
               </option>
@@ -142,7 +148,8 @@ export default function ReportsPage() {
             <Link
               key={report._id}
               href={
-                report.status === "draft" && report.departmentId === convexUser?.departmentId
+                report.status === "draft" &&
+                canEditReportForDepartment(convexUser, report.departmentId)
                   ? `/reports/${report._id}/edit`
                   : `/reports/${report._id}`
               }

@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect } from "react";
 import Link from "next/link";
+import { canSubmitDepartmentReport, isLeadershipUser } from "@/lib/permissions";
 import {
   FileText, CheckCircle2, AlertTriangle, ArrowRight,
   Plus, Eye, Edit3, Building2, BarChart3, Megaphone,
@@ -46,10 +47,11 @@ export default function DashboardPage() {
   if (!convexUser) return <DashboardSkeleton />;
 
   const isPresident = convexUser.roles.some((r) => ["president", "admin"].includes(r));
-  const isCoreTeam = convexUser.roles.some((r) => ["core_team", "president", "admin"].includes(r));
+  const isCoreTeam = isLeadershipUser(convexUser);
+  const canSubmitReport = canSubmitDepartmentReport(convexUser);
 
   if (isPresident || isCoreTeam) {
-    return <LeadershipDashboard canSubmitReport={Boolean(convexUser.departmentId)} />;
+    return <LeadershipDashboard canSubmitReport={canSubmitReport} />;
   }
   return <DepartmentDashboard clerkId={user!.id} />;
 }
@@ -124,6 +126,7 @@ function DepartmentDashboard({ clerkId }: { clerkId: string }) {
 
   if (!convexUser) return <DashboardSkeleton />;
   const recentReports = deptReports?.slice(0, 4) || [];
+  const canSubmitReport = canSubmitDepartmentReport(convexUser);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -146,14 +149,18 @@ function DepartmentDashboard({ clerkId }: { clerkId: string }) {
             <Link href={`/reports/${currentDraft._id}`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-[13px] font-medium text-text-secondary hover:bg-bg-tertiary transition-all">
               <Eye size={15} /> View Submitted Report
             </Link>
-          ) : currentDraft ? (
+          ) : currentDraft && canSubmitReport ? (
             <Link href={`/reports/${currentDraft._id}/edit`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-[13px] font-semibold hover:bg-brand-mid transition-all shadow-sm">
               <Edit3 size={15} /> Continue Draft
             </Link>
-          ) : (
+          ) : canSubmitReport ? (
             <Link href="/reports/new" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-[13px] font-semibold hover:bg-brand-mid transition-all shadow-sm">
               <Plus size={15} /> Start Report
             </Link>
+          ) : (
+            <p className="text-[13px] text-text-secondary">
+              No submitted report is available for your department this week.
+            </p>
           )}
         </div>
       </div>

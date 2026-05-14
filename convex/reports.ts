@@ -1,6 +1,13 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import {
+  canManageDepartmentReport,
+  canViewReport,
+  getCurrentUser,
+  isLeadershipUser,
+  requireReportManager,
+} from "./permissions";
 
 function newestFirst(reports: Doc<"reports">[]) {
   return [...reports].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -22,13 +29,14 @@ function pickActiveWeeklyReport(reports: Doc<"reports">[]) {
 export const createDraft = mutation({
   args: {
     departmentId: v.id("departments"),
-    departmentName: v.string(),
     weekLabel: v.string(),
     weekStart: v.string(),
-    departmentHeadClerkId: v.string(),
-    departmentHeadName: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await requireReportManager(ctx, args.departmentId);
+    const department = await ctx.db.get(args.departmentId);
+    if (!department?.active) throw new Error("Department not found");
+
     // Reuse an unfinished draft, but never route "New Report" to a submitted report.
     const existingReports = await ctx.db
       .query("reports")
@@ -41,7 +49,12 @@ export const createDraft = mutation({
     if (existingDraft) return existingDraft._id;
 
     return await ctx.db.insert("reports", {
-      ...args,
+      departmentId: args.departmentId,
+      departmentName: department.name,
+      weekLabel: args.weekLabel,
+      weekStart: args.weekStart,
+      departmentHeadClerkId: user.clerkId,
+      departmentHeadName: user.name,
       status: "draft",
       sections: {},
       createdAt: Date.now(),
@@ -58,7 +71,11 @@ export const autosave = mutation({
   },
   handler: async (ctx, args) => {
     const report = await ctx.db.get(args.reportId);
-    if (!report || report.status === "submitted") return;
+    if (!report) throw new Error("Report not found");
+    await requireReportManager(ctx, report.departmentId);
+    if (report.status === "submitted") {
+      throw new Error("Submitted reports are read-only");
+    }
 
     await ctx.db.patch(args.reportId, {
       sections: args.sections,
@@ -73,6 +90,7 @@ export const submit = mutation({
   handler: async (ctx, args) => {
     const report = await ctx.db.get(args.reportId);
     if (!report) throw new Error("Report not found");
+    await requireReportManager(ctx, report.departmentId);
     if (report.status === "submitted") throw new Error("Report already submitted");
 
     const now = Date.now();
@@ -106,7 +124,10 @@ export const submit = mutation({
 export const getById = query({
   args: { reportId: v.id("reports") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.reportId);
+    const user = await getCurrentUser(ctx);
+    const report = await ctx.db.get(args.reportId);
+    if (!report || !canViewReport(user, report)) return null;
+    return report;
   },
 });
 
@@ -116,12 +137,24 @@ export const getCurrentDraft = query({
     weekStart: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (
+      !user?.approved ||
+      (user.departmentId !== args.departmentId && !isLeadershipUser(user))
+    ) {
+      return null;
+    }
+
     const reports = await ctx.db
       .query("reports")
       .withIndex("by_department_week", (q) =>
         q.eq("departmentId", args.departmentId).eq("weekStart", args.weekStart)
       )
       .collect();
+
+    if (!isLeadershipUser(user) && !canManageDepartmentReport(user, args.departmentId)) {
+      return newestFirst(reports).find((report) => report.status === "submitted") ?? null;
+    }
 
     return pickActiveWeeklyReport(reports);
   },
@@ -130,24 +163,65 @@ export const getCurrentDraft = query({
 export const listByDepartment = query({
   args: { departmentId: v.id("departments") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const user = await getCurrentUser(ctx);
+    if (
+      !user?.approved ||
+      (user.departmentId !== args.departmentId && !isLeadershipUser(user))
+    ) {
+      return [];
+    }
+
+    const reports = await ctx.db
       .query("reports")
       .withIndex("by_department", (q) => q.eq("departmentId", args.departmentId))
       .order("desc")
       .collect();
+
+    if (isLeadershipUser(user) || canManageDepartmentReport(user, args.departmentId)) {
+      return reports;
+    }
+
+    return reports.filter((report) => report.status === "submitted");
   },
 });
 
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("reports").order("desc").collect();
+    const user = await getCurrentUser(ctx);
+    if (!user?.approved) return [];
+
+    if (isLeadershipUser(user)) {
+      return await ctx.db.query("reports").order("desc").collect();
+    }
+
+    if (!user.departmentId) return [];
+
+    const reports = await ctx.db
+      .query("reports")
+      .withIndex("by_department", (q) => q.eq("departmentId", user.departmentId!))
+      .order("desc")
+      .collect();
+
+    if (canManageDepartmentReport(user, user.departmentId)) {
+      return reports;
+    }
+
+    return reports.filter((report) => report.status === "submitted");
   },
 });
 
 export const getLastSubmitted = query({
   args: { departmentId: v.id("departments") },
   handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (
+      !user?.approved ||
+      (user.departmentId !== args.departmentId && !isLeadershipUser(user))
+    ) {
+      return null;
+    }
+
     return await ctx.db
       .query("reports")
       .withIndex("by_department", (q) => q.eq("departmentId", args.departmentId))
@@ -160,6 +234,9 @@ export const getLastSubmitted = query({
 export const getOrgStatusThisWeek = query({
   args: { weekStart: v.string() },
   handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!isLeadershipUser(user)) return [];
+
     const departments = await ctx.db
       .query("departments")
       .filter((q) => q.eq(q.field("active"), true))
@@ -200,6 +277,14 @@ export const getMetricsHistory = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (
+      !user?.approved ||
+      (user.departmentId !== args.departmentId && !isLeadershipUser(user))
+    ) {
+      return [];
+    }
+
     const reports = await ctx.db
       .query("reports")
       .withIndex("by_department", (q) => q.eq("departmentId", args.departmentId))
@@ -221,6 +306,13 @@ export const carryForwardTasks = mutation({
     departmentId: v.id("departments"),
   },
   handler: async (ctx, args) => {
+    const report = await ctx.db.get(args.reportId);
+    if (!report) throw new Error("Report not found");
+    await requireReportManager(ctx, report.departmentId);
+    if (report.departmentId !== args.departmentId) {
+      throw new Error("Report does not belong to this department");
+    }
+
     const lastReport = await ctx.db
       .query("reports")
       .withIndex("by_department", (q) => q.eq("departmentId", args.departmentId))
@@ -236,9 +328,6 @@ export const carryForwardTasks = mutation({
     );
 
     if (pendingTasks.length === 0) return [];
-
-    const report = await ctx.db.get(args.reportId);
-    if (!report) return [];
 
     const currentTasks = report.sections?.task_tracker || [];
     const newTasks = [

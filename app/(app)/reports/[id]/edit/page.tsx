@@ -6,8 +6,10 @@ import { api } from "@/convex/_generated/api";
 import { use, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
+import Link from "next/link";
+import { canEditReportForDepartment } from "@/lib/permissions";
 import {
-  Save, Send, ChevronDown, ChevronUp, Plus, Trash2,
+  Send, ChevronDown, ChevronUp, Plus, Trash2,
   CheckCircle2, Loader2, AlertCircle, X,
 } from "lucide-react";
 
@@ -22,6 +24,7 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
   const template = useQuery(api.templates.getByDepartment, report?.departmentId ? { departmentId: report.departmentId } : "skip");
   const autosave = useMutation(api.reports.autosave);
   const submitReport = useMutation(api.reports.submit);
+  const canEditReport = canEditReportForDepartment(convexUser, report?.departmentId);
 
   const [sections, setSections] = useState<Sections>({});
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
@@ -37,6 +40,12 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
       initialized.current = true;
     }
   }, [report]);
+
+  useEffect(() => {
+    if (report?.status === "submitted") {
+      router.replace(`/reports/${report._id}`);
+    }
+  }, [report, router]);
 
   const doSave = useCallback(async (data: Sections) => {
     if (!report) return;
@@ -68,12 +77,37 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
     setSubmitting(false);
   };
 
-  if (!report || !template) {
+  if (
+    report === undefined ||
+    convexUser === undefined ||
+    (report && template === undefined)
+  ) {
     return <div className="space-y-4">{[1,2,3].map(i=><div key={i} className="skeleton h-32 rounded-2xl"/>)}</div>;
   }
 
+  if (!report || !template || !canEditReport) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="max-w-sm text-center animate-fade-in">
+          <AlertCircle size={34} className="text-warn mx-auto mb-4" />
+          <h1 className="text-lg font-semibold text-text-primary mb-2">
+            Editing is restricted
+          </h1>
+          <p className="text-sm text-text-secondary mb-5">
+            Only the approved department head can edit and submit this department&apos;s report.
+          </p>
+          <Link
+            href={report ? `/reports/${report._id}` : "/reports"}
+            className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-border text-[13px] font-medium text-text-secondary hover:bg-bg-tertiary transition-all"
+          >
+            View Report
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (report.status === "submitted") {
-    router.replace(`/reports/${report._id}`);
     return null;
   }
 

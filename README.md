@@ -225,6 +225,7 @@ NEXT_PUBLIC_CONVEX_URL=
 NEXT_PUBLIC_CONVEX_SITE_URL=
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
+CLERK_JWT_ISSUER_DOMAIN=
 ```
 
 Do not commit `.env.local`.
@@ -282,7 +283,9 @@ Recommended Clerk setup:
 2. Enable email or Google sign-in.
 3. Set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`.
 4. Set `CLERK_SECRET_KEY`.
-5. Add the Convex webhook endpoint for Clerk user sync.
+5. Configure the Clerk Convex JWT template or integration with audience `convex`.
+6. Set `CLERK_JWT_ISSUER_DOMAIN` in Convex to your Clerk issuer URL, for example `https://your-app.clerk.accounts.dev`.
+7. Add the Convex webhook endpoint for Clerk user sync.
 
 Convex webhook path:
 

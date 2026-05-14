@@ -1,18 +1,39 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState } from "react";
-import { BarChart3, TrendingUp, Users, Calendar } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
+import { AlertCircle, BarChart3, TrendingUp, Users, Calendar } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { isLeadershipUser } from "@/lib/permissions";
 
 export default function AnalyticsPage() {
+  const { user } = useUser();
+  const convexUser = useQuery(
+    api.users.getByClerkId,
+    user?.id ? { clerkId: user.id } : "skip"
+  );
   const departments = useQuery(api.departments.listAll);
   const allReports = useQuery(api.reports.listAll);
-  const [selectedDept, setSelectedDept] = useState<string>("all");
 
-  if (!departments || !allReports) {
+  if (convexUser === undefined || !departments || !allReports) {
     return <div className="space-y-4">{[1,2,3].map(i=><div key={i} className="skeleton h-64 rounded-2xl"/>)}</div>;
+  }
+
+  if (!isLeadershipUser(convexUser)) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="max-w-sm text-center animate-fade-in">
+          <AlertCircle size={34} className="text-warn mx-auto mb-4" />
+          <h1 className="text-lg font-semibold text-text-primary mb-2">
+            Analytics is restricted
+          </h1>
+          <p className="text-sm text-text-secondary">
+            Organization-wide analytics are available to the core team.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const submittedReports = allReports.filter(r => r.status === "submitted");
