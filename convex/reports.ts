@@ -1,5 +1,23 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+
+function newestFirst(reports: Doc<"reports">[]) {
+  return [...reports].sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+function pickDraft(reports: Doc<"reports">[]) {
+  return newestFirst(reports).find((report) => report.status === "draft") ?? null;
+}
+
+function pickActiveWeeklyReport(reports: Doc<"reports">[]) {
+  const sortedReports = newestFirst(reports);
+  return (
+    sortedReports.find((report) => report.status === "draft") ??
+    sortedReports.find((report) => report.status === "submitted") ??
+    null
+  );
+}
 
 export const createDraft = mutation({
   args: {
@@ -11,15 +29,16 @@ export const createDraft = mutation({
     departmentHeadName: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if draft already exists for this dept + week
-    const existing = await ctx.db
+    // Reuse an unfinished draft, but never route "New Report" to a submitted report.
+    const existingReports = await ctx.db
       .query("reports")
       .withIndex("by_department_week", (q) =>
         q.eq("departmentId", args.departmentId).eq("weekStart", args.weekStart)
       )
-      .first();
+      .collect();
 
-    if (existing) return existing._id;
+    const existingDraft = pickDraft(existingReports);
+    if (existingDraft) return existingDraft._id;
 
     return await ctx.db.insert("reports", {
       ...args,
@@ -97,12 +116,14 @@ export const getCurrentDraft = query({
     weekStart: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const reports = await ctx.db
       .query("reports")
       .withIndex("by_department_week", (q) =>
         q.eq("departmentId", args.departmentId).eq("weekStart", args.weekStart)
       )
-      .first();
+      .collect();
+
+    return pickActiveWeeklyReport(reports);
   },
 });
 
@@ -146,12 +167,13 @@ export const getOrgStatusThisWeek = query({
 
     const statusList = [];
     for (const dept of departments) {
-      const report = await ctx.db
+      const reports = await ctx.db
         .query("reports")
         .withIndex("by_department_week", (q) =>
           q.eq("departmentId", dept._id).eq("weekStart", args.weekStart)
         )
-        .first();
+        .collect();
+      const report = pickActiveWeeklyReport(reports);
 
       // Get dept head info
       let headName = "Not assigned";

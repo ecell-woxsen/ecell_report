@@ -18,6 +18,18 @@ export default defineSchema({
         v.literal("admin")
       )
     ),
+    requestedRoles: v.optional(
+      v.array(
+        v.union(
+          v.literal("member"),
+          v.literal("department_head"),
+          v.literal("core_team"),
+          v.literal("president"),
+          v.literal("admin")
+        )
+      )
+    ),
+    roleRequestCreatedAt: v.optional(v.number()),
     departmentId: v.optional(v.id("departments")),
     avatarUrl: v.optional(v.string()),
     approved: v.boolean(),
