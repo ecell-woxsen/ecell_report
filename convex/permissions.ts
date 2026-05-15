@@ -11,6 +11,13 @@ const leadershipRoles = new Set<User["roles"][number]>([
   "admin",
 ]);
 
+const departmentReportRoles = new Set<User["roles"][number]>([
+  "department_head",
+  "core_team",
+  "president",
+  "admin",
+]);
+
 export function isLeadershipUser(user: Pick<User, "approved" | "roles"> | null) {
   return Boolean(
     user?.approved && user.roles.some((role) => leadershipRoles.has(role))
@@ -21,11 +28,10 @@ export function canManageDepartmentReport(
   user: Pick<User, "approved" | "roles" | "departmentId"> | null,
   departmentId: Id<"departments">
 ) {
-  return Boolean(
-    user?.approved &&
-      user.departmentId === departmentId &&
-      user.roles.includes("department_head")
-  );
+  if (!user?.approved) return false;
+  if (!user.roles.some((role) => departmentReportRoles.has(role))) return false;
+  if (isLeadershipUser(user)) return true;
+  return user.departmentId === departmentId;
 }
 
 export function canViewReport(user: User | null, report: Report) {
@@ -36,29 +42,33 @@ export function canViewReport(user: User | null, report: Report) {
   return report.status === "submitted";
 }
 
-export async function getCurrentUser(ctx: Ctx) {
+export async function getCurrentUser(ctx: Ctx, fallbackClerkId?: string) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) return null;
+  const clerkId = identity?.subject ?? fallbackClerkId;
+  if (!clerkId) return null;
 
   return await ctx.db
     .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
     .first();
 }
 
-export async function requireApprovedUser(ctx: Ctx) {
-  const user = await getCurrentUser(ctx);
+export async function requireApprovedUser(ctx: Ctx, fallbackClerkId?: string) {
+  const user = await getCurrentUser(ctx, fallbackClerkId);
   if (!user?.approved) throw new Error("Unauthorized");
   return user;
 }
 
 export async function requireReportManager(
   ctx: Ctx,
-  departmentId: Id<"departments">
+  departmentId: Id<"departments">,
+  fallbackClerkId?: string
 ) {
-  const user = await requireApprovedUser(ctx);
+  const user = await requireApprovedUser(ctx, fallbackClerkId);
   if (!canManageDepartmentReport(user, departmentId)) {
-    throw new Error("Only department heads can manage reports for their own department");
+    throw new Error(
+      "Only department heads, core team, presidents, and admins can manage reports"
+    );
   }
   return user;
 }

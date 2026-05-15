@@ -12,13 +12,15 @@ export function isLeadershipUser(user: RoleUser) {
 }
 
 export function canSubmitDepartmentReport(user: RoleUser) {
-  return Boolean(
-    user?.approved && user.departmentId && user.roles?.includes("department_head")
-  );
+  if (!user?.approved) return false;
+  if (isLeadershipUser(user)) return true;
+  return Boolean(user.departmentId && user.roles?.includes("department_head"));
 }
 
 export function canEditReportForDepartment(user: RoleUser, departmentId?: string) {
+  if (!user?.approved || !departmentId) return false;
+  if (isLeadershipUser(user)) return true;
   return Boolean(
-    canSubmitDepartmentReport(user) && departmentId && user?.departmentId === departmentId
+    user.departmentId === departmentId && user.roles?.includes("department_head")
   );
 }

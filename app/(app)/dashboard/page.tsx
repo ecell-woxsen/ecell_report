@@ -51,15 +51,15 @@ export default function DashboardPage() {
   const canSubmitReport = canSubmitDepartmentReport(convexUser);
 
   if (isPresident || isCoreTeam) {
-    return <LeadershipDashboard canSubmitReport={canSubmitReport} />;
+    return <LeadershipDashboard canSubmitReport={canSubmitReport} clerkId={user!.id} />;
   }
   return <DepartmentDashboard clerkId={user!.id} />;
 }
 
 /* ── Leadership Dashboard ─────────────────────────────────────────── */
-function LeadershipDashboard({ canSubmitReport }: { canSubmitReport: boolean }) {
+function LeadershipDashboard({ canSubmitReport, clerkId }: { canSubmitReport: boolean; clerkId: string }) {
   const weekStart = getCurrentWeekStart();
-  const orgStatus = useQuery(api.reports.getOrgStatusThisWeek, { weekStart });
+  const orgStatus = useQuery(api.reports.getOrgStatusThisWeek, { weekStart, clerkId });
   const announcements = useQuery(api.announcements.listActive);
 
   if (!orgStatus) return <DashboardSkeleton />;
@@ -120,8 +120,8 @@ function LeadershipDashboard({ canSubmitReport }: { canSubmitReport: boolean }) 
 function DepartmentDashboard({ clerkId }: { clerkId: string }) {
   const convexUser = useQuery(api.users.getByClerkId, { clerkId });
   const weekStart = getCurrentWeekStart();
-  const currentDraft = useQuery(api.reports.getCurrentDraft, convexUser?.departmentId ? { departmentId: convexUser.departmentId, weekStart } : "skip");
-  const deptReports = useQuery(api.reports.listByDepartment, convexUser?.departmentId ? { departmentId: convexUser.departmentId } : "skip");
+  const currentDraft = useQuery(api.reports.getCurrentDraft, convexUser?.departmentId ? { departmentId: convexUser.departmentId, weekStart, clerkId } : "skip");
+  const deptReports = useQuery(api.reports.listByDepartment, convexUser?.departmentId ? { departmentId: convexUser.departmentId, clerkId } : "skip");
   const announcements = useQuery(api.announcements.listActive);
 
   if (!convexUser) return <DashboardSkeleton />;

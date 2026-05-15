@@ -8,10 +8,10 @@ import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import {
   AlertCircle, CheckCircle2, Calendar, User, MessageSquare, Send,
-  ArrowLeft, Download, ChevronDown, ChevronUp, FileSpreadsheet
+  ArrowLeft, Download, ChevronDown, ChevronUp, FileSpreadsheet, Edit3
 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
-import { isLeadershipUser } from "@/lib/permissions";
+import { canEditReportForDepartment, isLeadershipUser } from "@/lib/permissions";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -58,7 +58,10 @@ type PdfContext = {
 export default function ReportViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user } = useUser();
-  const report = useQuery(api.reports.getById, { reportId: id as Id<"reports"> });
+  const report = useQuery(
+    api.reports.getById,
+    user?.id ? { reportId: id as Id<"reports">, clerkId: user.id } : "skip"
+  );
   const template = useQuery(api.templates.getByDepartment, report?.departmentId ? { departmentId: report.departmentId } : "skip");
   const comments = useQuery(api.comments.listByReport, report?._id ? { reportId: report._id } : "skip");
   const convexUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
@@ -91,6 +94,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
   const sections = (report.sections || {}) as Record<string, any>;
   const enabledSections = template.sections.filter(s => s.enabled).sort((a, b) => a.order - b.order);
   const isCoreTeam = isLeadershipUser(convexUser);
+  const canEditReport = canEditReportForDepartment(convexUser, report.departmentId);
   const sectionComments = (key: string) => comments?.filter(c => c.sectionKey === key && !c.parentId) || [];
 
   const exportToExcel = () => {
@@ -218,6 +222,11 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
             <p className="text-white/80 text-sm mt-1">{report.weekLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {report.status === "draft" && canEditReport && (
+              <Link href={`/reports/${report._id}/edit`} className="print:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors">
+                <Edit3 size={13} /> Edit Draft
+              </Link>
+            )}
             <button onClick={exportToExcel} className="print:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-soft/20 hover:bg-brand-soft/40 text-brand-light text-xs font-medium transition-colors border border-brand-soft/20">
               <FileSpreadsheet size={13} /> Excel
             </button>

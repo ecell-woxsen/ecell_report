@@ -13,6 +13,7 @@ import type * as comments from "../comments.js";
 import type * as departments from "../departments.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
+import type * as permissions from "../permissions.js";
 import type * as reports from "../reports.js";
 import type * as templates from "../templates.js";
 import type * as users from "../users.js";
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   departments: typeof departments;
   http: typeof http;
   notifications: typeof notifications;
+  permissions: typeof permissions;
   reports: typeof reports;
   templates: typeof templates;
   users: typeof users;

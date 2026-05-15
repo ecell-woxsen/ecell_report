@@ -31,9 +31,10 @@ export const createDraft = mutation({
     departmentId: v.id("departments"),
     weekLabel: v.string(),
     weekStart: v.string(),
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireReportManager(ctx, args.departmentId);
+    const user = await requireReportManager(ctx, args.departmentId, args.clerkId);
     const department = await ctx.db.get(args.departmentId);
     if (!department?.active) throw new Error("Department not found");
 
@@ -68,11 +69,12 @@ export const autosave = mutation({
     reportId: v.id("reports"),
     sections: v.any(),
     activeMembersCount: v.optional(v.number()),
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const report = await ctx.db.get(args.reportId);
     if (!report) throw new Error("Report not found");
-    await requireReportManager(ctx, report.departmentId);
+    await requireReportManager(ctx, report.departmentId, args.clerkId);
     if (report.status === "submitted") {
       throw new Error("Submitted reports are read-only");
     }
@@ -86,11 +88,14 @@ export const autosave = mutation({
 });
 
 export const submit = mutation({
-  args: { reportId: v.id("reports") },
+  args: {
+    reportId: v.id("reports"),
+    clerkId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const report = await ctx.db.get(args.reportId);
     if (!report) throw new Error("Report not found");
-    await requireReportManager(ctx, report.departmentId);
+    await requireReportManager(ctx, report.departmentId, args.clerkId);
     if (report.status === "submitted") throw new Error("Report already submitted");
 
     const now = Date.now();
@@ -122,9 +127,12 @@ export const submit = mutation({
 });
 
 export const getById = query({
-  args: { reportId: v.id("reports") },
+  args: {
+    reportId: v.id("reports"),
+    clerkId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUser(ctx, args.clerkId);
     const report = await ctx.db.get(args.reportId);
     if (!report || !canViewReport(user, report)) return null;
     return report;
@@ -135,9 +143,10 @@ export const getCurrentDraft = query({
   args: {
     departmentId: v.id("departments"),
     weekStart: v.string(),
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUser(ctx, args.clerkId);
     if (
       !user?.approved ||
       (user.departmentId !== args.departmentId && !isLeadershipUser(user))
@@ -161,9 +170,12 @@ export const getCurrentDraft = query({
 });
 
 export const listByDepartment = query({
-  args: { departmentId: v.id("departments") },
+  args: {
+    departmentId: v.id("departments"),
+    clerkId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUser(ctx, args.clerkId);
     if (
       !user?.approved ||
       (user.departmentId !== args.departmentId && !isLeadershipUser(user))
@@ -186,9 +198,11 @@ export const listByDepartment = query({
 });
 
 export const listAll = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
+  args: {
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx, args.clerkId);
     if (!user?.approved) return [];
 
     if (isLeadershipUser(user)) {
@@ -212,9 +226,12 @@ export const listAll = query({
 });
 
 export const getLastSubmitted = query({
-  args: { departmentId: v.id("departments") },
+  args: {
+    departmentId: v.id("departments"),
+    clerkId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUser(ctx, args.clerkId);
     if (
       !user?.approved ||
       (user.departmentId !== args.departmentId && !isLeadershipUser(user))
@@ -232,9 +249,12 @@ export const getLastSubmitted = query({
 });
 
 export const getOrgStatusThisWeek = query({
-  args: { weekStart: v.string() },
+  args: {
+    weekStart: v.string(),
+    clerkId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUser(ctx, args.clerkId);
     if (!isLeadershipUser(user)) return [];
 
     const departments = await ctx.db
@@ -275,9 +295,10 @@ export const getMetricsHistory = query({
   args: {
     departmentId: v.id("departments"),
     limit: v.optional(v.number()),
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUser(ctx, args.clerkId);
     if (
       !user?.approved ||
       (user.departmentId !== args.departmentId && !isLeadershipUser(user))
@@ -304,11 +325,12 @@ export const carryForwardTasks = mutation({
   args: {
     reportId: v.id("reports"),
     departmentId: v.id("departments"),
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const report = await ctx.db.get(args.reportId);
     if (!report) throw new Error("Report not found");
-    await requireReportManager(ctx, report.departmentId);
+    await requireReportManager(ctx, report.departmentId, args.clerkId);
     if (report.departmentId !== args.departmentId) {
       throw new Error("Report does not belong to this department");
     }

@@ -29,7 +29,10 @@ export default function ReportsPage() {
 
   const canSubmitReport = canSubmitDepartmentReport(convexUser);
   const canViewAllDepartments = isLeadershipUser(convexUser);
-  const allReports = useQuery(api.reports.listAll);
+  const allReports = useQuery(
+    api.reports.listAll,
+    user?.id ? { clerkId: user.id } : "skip"
+  );
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");

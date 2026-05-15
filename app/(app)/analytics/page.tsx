@@ -14,7 +14,10 @@ export default function AnalyticsPage() {
     user?.id ? { clerkId: user.id } : "skip"
   );
   const departments = useQuery(api.departments.listAll);
-  const allReports = useQuery(api.reports.listAll);
+  const allReports = useQuery(
+    api.reports.listAll,
+    user?.id ? { clerkId: user.id } : "skip"
+  );
 
   if (convexUser === undefined || !departments || !allReports) {
     return <div className="space-y-4">{[1,2,3].map(i=><div key={i} className="skeleton h-64 rounded-2xl"/>)}</div>;

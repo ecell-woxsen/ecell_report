@@ -18,9 +18,13 @@ type Sections = Record<string, unknown>;
 export default function ReportEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user } = useUser();
+  const clerkId = user?.id;
   const router = useRouter();
-  const report = useQuery(api.reports.getById, { reportId: id as Id<"reports"> });
-  const convexUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const report = useQuery(
+    api.reports.getById,
+    clerkId ? { reportId: id as Id<"reports">, clerkId } : "skip"
+  );
+  const convexUser = useQuery(api.users.getByClerkId, clerkId ? { clerkId } : "skip");
   const template = useQuery(api.templates.getByDepartment, report?.departmentId ? { departmentId: report.departmentId } : "skip");
   const autosave = useMutation(api.reports.autosave);
   const submitReport = useMutation(api.reports.submit);
@@ -48,13 +52,13 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
   }, [report, router]);
 
   const doSave = useCallback(async (data: Sections) => {
-    if (!report) return;
+    if (!report || !clerkId) return;
     setSaveStatus("saving");
     try {
-      await autosave({ reportId: report._id, sections: data });
+      await autosave({ reportId: report._id, sections: data, clerkId });
       setSaveStatus("saved");
     } catch { setSaveStatus("unsaved"); }
-  }, [report, autosave]);
+  }, [report, autosave, clerkId]);
 
   const updateSection = useCallback((key: string, value: unknown) => {
     setSections((prev) => {
@@ -67,11 +71,11 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
   }, [doSave]);
 
   const handleSubmit = async () => {
-    if (!report) return;
+    if (!report || !clerkId) return;
     setSubmitting(true);
     try {
       await doSave(sections);
-      await submitReport({ reportId: report._id });
+      await submitReport({ reportId: report._id, clerkId });
       router.push(`/reports/${report._id}`);
     } catch (e) { console.error(e); }
     setSubmitting(false);
@@ -94,7 +98,7 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
             Editing is restricted
           </h1>
           <p className="text-sm text-text-secondary mb-5">
-            Only the approved department head can edit and submit this department&apos;s report.
+            Approved department heads, core team, presidents, and admins can edit and submit reports.
           </p>
           <Link
             href={report ? `/reports/${report._id}` : "/reports"}
