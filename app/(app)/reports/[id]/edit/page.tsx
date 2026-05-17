@@ -10,7 +10,7 @@ import Link from "next/link";
 import { canEditReportForDepartment } from "@/lib/permissions";
 import {
   Send, ChevronDown, ChevronUp, Plus, Trash2,
-  CheckCircle2, Loader2, AlertCircle, X,
+  CheckCircle2, Loader2, AlertCircle, X, Eye,
 } from "lucide-react";
 
 type Sections = Record<string, unknown>;
@@ -46,10 +46,19 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
   }, [report]);
 
   useEffect(() => {
-    if (report?.status === "submitted") {
-      router.replace(`/reports/${report._id}`);
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
+    };
+  }, []);
+
+  const clearPendingSave = useCallback(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
     }
-  }, [report, router]);
+  }, []);
 
   const doSave = useCallback(async (data: Sections) => {
     if (!report || !clerkId) return;
@@ -64,21 +73,35 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
     setSections((prev) => {
       const next = { ...prev, [key]: value };
       setSaveStatus("unsaved");
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => doSave(next), 2000);
+      clearPendingSave();
+      saveTimer.current = setTimeout(() => {
+        saveTimer.current = null;
+        void doSave(next);
+      }, 2000);
       return next;
     });
-  }, [doSave]);
+  }, [clearPendingSave, doSave]);
+
+  const saveNow = useCallback(async () => {
+    clearPendingSave();
+    await doSave(sections);
+  }, [clearPendingSave, doSave, sections]);
 
   const handleSubmit = async () => {
     if (!report || !clerkId) return;
     setSubmitting(true);
     try {
-      await doSave(sections);
+      await saveNow();
       await submitReport({ reportId: report._id, clerkId });
       router.push(`/reports/${report._id}`);
     } catch (e) { console.error(e); }
     setSubmitting(false);
+  };
+
+  const handleDone = async () => {
+    if (!report) return;
+    await saveNow();
+    router.push(`/reports/${report._id}`);
   };
 
   if (
@@ -111,11 +134,8 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  if (report.status === "submitted") {
-    return null;
-  }
-
   const enabledSections = template.sections.filter((s) => s.enabled).sort((a, b) => a.order - b.order);
+  const isSubmitted = report.status === "submitted";
   const filledCount = enabledSections.filter((s) => {
     const val = sections[s.key];
     if (!val) return false;
@@ -132,9 +152,11 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-border-light shadow-sm">
           <div>
             <h1 className="text-lg font-semibold text-text-primary">{report.departmentName}</h1>
-            <p className="text-xs text-text-tertiary">{report.weekLabel}</p>
+            <p className="text-xs text-text-tertiary">
+              {report.weekLabel} - {isSubmitted ? "Submitted report" : "Draft report"}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className={`text-xs font-medium flex items-center gap-1.5 ${saveStatus==="saved"?"text-success-text":saveStatus==="saving"?"text-warn":"text-danger"}`}>
               {saveStatus==="saved"&&<CheckCircle2 size={13}/>}
               {saveStatus==="saving"&&<Loader2 size={13} className="animate-spin"/>}
@@ -142,9 +164,21 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
               {saveStatus==="saved"?"All changes saved":saveStatus==="saving"?"Saving...":"Unsaved changes"}
             </span>
             <span className="text-xs text-text-tertiary">{filledCount}/{enabledSections.length} sections</span>
-            <button onClick={()=>setShowSubmitModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-mid transition-all">
-              <Send size={14}/> Submit
-            </button>
+            {isSubmitted ? (
+              <>
+                <button onClick={saveNow} disabled={saveStatus === "saved" || saveStatus === "saving"} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-text-secondary text-sm font-semibold hover:bg-bg-tertiary transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  {saveStatus === "saving" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  Save Now
+                </button>
+                <button onClick={handleDone} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-mid transition-all">
+                  <Eye size={14}/> Done
+                </button>
+              </>
+            ) : (
+              <button onClick={()=>setShowSubmitModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-mid transition-all">
+                <Send size={14}/> Submit
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -169,7 +203,7 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Submit Modal */}
-      {showSubmitModal && (
+      {showSubmitModal && !isSubmitted && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-6">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-4">

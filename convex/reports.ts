@@ -75,9 +75,6 @@ export const autosave = mutation({
     const report = await ctx.db.get(args.reportId);
     if (!report) throw new Error("Report not found");
     await requireReportManager(ctx, report.departmentId, args.clerkId);
-    if (report.status === "submitted") {
-      throw new Error("Submitted reports are read-only");
-    }
 
     await ctx.db.patch(args.reportId, {
       sections: args.sections,

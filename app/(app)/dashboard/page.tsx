@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect } from "react";
 import Link from "next/link";
-import { canSubmitDepartmentReport, isLeadershipUser } from "@/lib/permissions";
+import { canEditReportForDepartment, canSubmitDepartmentReport, isLeadershipUser } from "@/lib/permissions";
 import {
   FileText, CheckCircle2, AlertTriangle, ArrowRight,
   Plus, Eye, Edit3, Building2, BarChart3, Megaphone,
@@ -127,6 +127,10 @@ function DepartmentDashboard({ clerkId }: { clerkId: string }) {
   if (!convexUser) return <DashboardSkeleton />;
   const recentReports = deptReports?.slice(0, 4) || [];
   const canSubmitReport = canSubmitDepartmentReport(convexUser);
+  const canEditCurrentReport = canEditReportForDepartment(
+    convexUser,
+    currentDraft?.departmentId
+  );
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -146,9 +150,16 @@ function DepartmentDashboard({ clerkId }: { clerkId: string }) {
         </div>
         <div className="mt-5">
           {currentDraft?.status === "submitted" ? (
-            <Link href={`/reports/${currentDraft._id}`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-[13px] font-medium text-text-secondary hover:bg-bg-tertiary transition-all">
-              <Eye size={15} /> View Submitted Report
-            </Link>
+            <div className="flex flex-wrap gap-2.5">
+              <Link href={`/reports/${currentDraft._id}`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-[13px] font-medium text-text-secondary hover:bg-bg-tertiary transition-all">
+                <Eye size={15} /> View Submitted Report
+              </Link>
+              {canEditCurrentReport && (
+                <Link href={`/reports/${currentDraft._id}/edit`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-[13px] font-semibold hover:bg-brand-mid transition-all shadow-sm">
+                  <Edit3 size={15} /> Edit Report
+                </Link>
+              )}
+            </div>
           ) : currentDraft && canSubmitReport ? (
             <Link href={`/reports/${currentDraft._id}/edit`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-[13px] font-semibold hover:bg-brand-mid transition-all shadow-sm">
               <Edit3 size={15} /> Continue Draft

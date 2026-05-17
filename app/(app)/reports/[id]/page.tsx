@@ -222,9 +222,9 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
             <p className="text-white/80 text-sm mt-1">{report.weekLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {report.status === "draft" && canEditReport && (
+            {canEditReport && (
               <Link href={`/reports/${report._id}/edit`} className="print:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors">
-                <Edit3 size={13} /> Edit Draft
+                <Edit3 size={13} /> {report.status === "draft" ? "Edit Draft" : "Edit Report"}
               </Link>
             )}
             <button onClick={exportToExcel} className="print:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-soft/20 hover:bg-brand-soft/40 text-brand-light text-xs font-medium transition-colors border border-brand-soft/20">

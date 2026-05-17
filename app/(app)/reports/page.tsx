@@ -78,7 +78,9 @@ export default function ReportsPage() {
           <p className="text-text-tertiary text-[13px] mt-0.5">
             {canViewAllDepartments
               ? "Organization-wide report view across departments"
-              : "Read-only submitted reports for your department"}
+              : canSubmitReport
+                ? "Report history and drafts for your department"
+                : "Read-only submitted reports for your department"}
           </p>
         </div>
         {canSubmitReport && (
