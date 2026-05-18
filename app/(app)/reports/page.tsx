@@ -18,6 +18,7 @@ import {
   Edit3,
   ArrowRight,
   Calendar,
+  Paperclip,
 } from "lucide-react";
 
 export default function ReportsPage() {
@@ -197,6 +198,12 @@ export default function ReportsPage() {
                     <span>
                       Submitted{" "}
                       {new Date(report.submittedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                  {(report.attachments?.length ?? 0) > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Paperclip size={11} />
+                      {report.attachments?.length}
                     </span>
                   )}
                 </div>

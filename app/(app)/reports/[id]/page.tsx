@@ -6,9 +6,11 @@ import { api } from "@/convex/_generated/api";
 import { use, useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
+import { formatAttachmentType, formatFileSize } from "@/lib/attachments";
 import {
   AlertCircle, CheckCircle2, Calendar, User, MessageSquare, Send,
-  ArrowLeft, Download, ChevronDown, ChevronUp, FileSpreadsheet, Edit3
+  ArrowLeft, Download, ChevronDown, ChevronUp, FileSpreadsheet, Edit3,
+  Paperclip, FileText, ExternalLink
 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
 import { canEditReportForDepartment, isLeadershipUser } from "@/lib/permissions";
@@ -55,6 +57,17 @@ type PdfContext = {
   cursorY: number;
 };
 
+type ReportAttachment = {
+  storageId: Id<"_storage">;
+  name: string;
+  contentType?: string;
+  size: number;
+  description?: string;
+  uploadedAt: number;
+  uploadedByName: string;
+  url: string | null;
+};
+
 export default function ReportViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user } = useUser();
@@ -64,6 +77,10 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
   );
   const template = useQuery(api.templates.getByDepartment, report?.departmentId ? { departmentId: report.departmentId } : "skip");
   const comments = useQuery(api.comments.listByReport, report?._id ? { reportId: report._id } : "skip");
+  const attachments = useQuery(
+    api.reports.listAttachments,
+    report?._id && user?.id ? { reportId: report._id, clerkId: user.id } : "skip"
+  ) as ReportAttachment[] | undefined;
   const convexUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -102,6 +119,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
     const wb = XLSX.utils.book_new();
     const existingSheetNames = new Set<string>(["Overview"]);
     const allComments = comments || [];
+    const allAttachments = attachments || [];
     const sheetBySection = new Map<string, string>();
     const sheetSummaries: SheetSummary[] = [];
     const narrativeRows: any[][] = [];
@@ -152,6 +170,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
         report,
         sheetSummaries,
         comments: allComments,
+        attachments: allAttachments,
         metricRows,
         narrativeRows,
       }),
@@ -185,6 +204,14 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
       );
     }
 
+    if (allAttachments.length > 0) {
+      XLSX.utils.book_append_sheet(
+        wb,
+        buildAttachmentsSheet(report, allAttachments),
+        "Attachments"
+      );
+    }
+
     XLSX.writeFile(wb, `${toFileSlug(report.departmentName)}_${toFileSlug(report.weekLabel)}_weekly_report.xlsx`, {
       bookType: "xlsx",
       cellDates: true,
@@ -201,6 +228,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
         enabledSections,
         sections,
         comments: comments || [],
+        attachments: attachments || [],
       });
     } finally {
       setExportingPdf(false);
@@ -248,6 +276,51 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
+      {attachments && attachments.length > 0 && (
+        <div className="mb-6 rounded-2xl bg-white border border-border-light shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 p-5 border-b border-border-light">
+            <span className="w-8 h-8 rounded-lg bg-info-light text-info flex items-center justify-center">
+              <Paperclip size={15} />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-text-primary">Attachments</h2>
+              <p className="text-xs text-text-tertiary mt-0.5">
+                {attachments.length} {attachments.length === 1 ? "file" : "files"}
+              </p>
+            </div>
+          </div>
+          <div className="divide-y divide-border-light">
+            {attachments.map((attachment) => (
+              <div key={attachment.storageId} className="flex items-center gap-3 p-4">
+                <span className="w-9 h-9 rounded-xl bg-bg-tertiary text-text-tertiary flex items-center justify-center shrink-0">
+                  <FileText size={16} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">{attachment.name}</p>
+                  {attachment.description && (
+                    <p className="text-xs text-text-secondary mt-0.5 break-words">{attachment.description}</p>
+                  )}
+                  <p className="text-[11px] text-text-tertiary mt-1">
+                    {formatAttachmentType(attachment.contentType)} / {formatFileSize(attachment.size)} / {attachment.uploadedByName}
+                  </p>
+                </div>
+                {attachment.url && (
+                  <a
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="print:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-secondary hover:bg-bg-tertiary transition-all"
+                  >
+                    <ExternalLink size={12} />
+                    Open
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Sections */}
       <div className="space-y-4">
         {enabledSections.map((section, idx) => {
@@ -292,11 +365,13 @@ async function exportReportToPdf({
   enabledSections,
   sections,
   comments,
+  attachments,
 }: {
   report: any;
   enabledSections: any[];
   sections: Record<string, any>;
   comments: any[];
+  attachments: ReportAttachment[];
 }) {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -385,6 +460,24 @@ async function exportReportToPdf({
             comment.text,
           ];
         }),
+      { fontSize: 7.5 }
+    );
+  }
+
+  if (attachments.length > 0) {
+    addPdfPage(ctx);
+    addPdfSectionHeader(ctx, "Attachments", "Supporting files uploaded with this report.");
+    addPdfTable(
+      ctx,
+      autoTable,
+      ["File", "Type", "Size", "Uploaded By", "Note"],
+      attachments.map((attachment) => [
+        attachment.name,
+        formatAttachmentType(attachment.contentType),
+        formatFileSize(attachment.size),
+        attachment.uploadedByName,
+        attachment.description || "",
+      ]),
       { fontSize: 7.5 }
     );
   }
@@ -675,12 +768,14 @@ function buildOverviewSheet({
   report,
   sheetSummaries,
   comments,
+  attachments,
   metricRows,
   narrativeRows,
 }: {
   report: any;
   sheetSummaries: SheetSummary[];
   comments: any[];
+  attachments: ReportAttachment[];
   metricRows: any[][];
   narrativeRows: any[][];
 }) {
@@ -688,7 +783,7 @@ function buildOverviewSheet({
   const submittedRows = sheetSummaries.reduce((total, s) => total + (typeof s.records === "number" ? s.records : 0), 0);
   const actionRequired = comments.filter((c) => c.tag === "Action Required" && !c.resolved).length;
   const submittedAt = report.submittedAt ? new Date(report.submittedAt) : "Not submitted";
-  const workbookSheetCount = new Set(sheetSummaries.map((summary) => summary.sheetName)).size + 1 + (comments.length > 0 ? 1 : 0);
+  const workbookSheetCount = new Set(sheetSummaries.map((summary) => summary.sheetName)).size + 1 + (comments.length > 0 ? 1 : 0) + (attachments.length > 0 ? 1 : 0);
   const navigationStartRow = 15;
   const data = [
     [`${report.departmentName} Weekly Report`],
@@ -701,7 +796,7 @@ function buildOverviewSheet({
     ["Executive Snapshot"],
     ["Sections Complete", completedSections, "Total Sections", sheetSummaries.length],
     ["Table Rows Submitted", submittedRows, "Metrics Captured", metricRows.filter((row) => row[2] !== "").length],
-    ["Narrative Entries", narrativeRows.length, "Feedback Comments", comments.length],
+    ["Narrative Entries", narrativeRows.length, "Attachments", attachments.length],
     ["Action Required", actionRequired, "Workbook Sheets", workbookSheetCount],
     [],
     ["Workbook Navigation"],
@@ -903,6 +998,53 @@ function buildFeedbackSheet(report: any, enabledSections: any[], comments: any[]
     if (createdCell) createdCell.z = "yyyy-mm-dd hh:mm";
     styleCell(ws, `G${row}`, workbookStyles.wrap);
   }
+  return ws;
+}
+
+function buildAttachmentsSheet(report: any, attachments: ReportAttachment[]) {
+  const data = [
+    ["Attachments"],
+    ["Department", report.departmentName, "Week", report.weekLabel],
+    ["Submitted By", report.departmentHeadName, "Generated", new Date()],
+    [],
+    ["File", "Type", "Size", "Uploaded By", "Uploaded At", "Note", "Link"],
+    ...attachments.map((attachment) => [
+      attachment.name,
+      formatAttachmentType(attachment.contentType),
+      formatFileSize(attachment.size),
+      attachment.uploadedByName,
+      new Date(attachment.uploadedAt),
+      attachment.description || "",
+      attachment.url || "",
+    ]),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
+  ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
+  ws["!cols"] = [
+    { wch: 36 },
+    { wch: 16 },
+    { wch: 12 },
+    { wch: 24 },
+    { wch: 20 },
+    { wch: 48 },
+    { wch: 18 },
+  ];
+  ws["!autofilter"] = { ref: `A5:G${Math.max(5, data.length)}` };
+  styleRow(ws, 1, 6, workbookStyles.title);
+  styleRow(ws, 5, 6, workbookStyles.tableHeader);
+  styleMetadataRows(ws, [2, 3]);
+  attachments.forEach((attachment, idx) => {
+    const row = idx + 6;
+    const uploadedAtCell = ws[`E${row}`] as any;
+    if (uploadedAtCell) uploadedAtCell.z = "yyyy-mm-dd hh:mm";
+    styleCell(ws, `F${row}`, workbookStyles.wrap);
+    const linkCell = ws[`G${row}`] as any;
+    if (linkCell && attachment.url) {
+      linkCell.v = "Open";
+      linkCell.l = { Target: attachment.url, Tooltip: attachment.name };
+      linkCell.s = { ...workbookStyles.muted };
+    }
+  });
   return ws;
 }
 

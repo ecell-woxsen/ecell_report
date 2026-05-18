@@ -9,11 +9,29 @@ import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { canEditReportForDepartment } from "@/lib/permissions";
 import {
+  AttachmentTooLargeError,
+  MAX_ATTACHMENT_BYTES,
+  formatAttachmentType,
+  formatFileSize,
+  prepareAttachmentForUpload,
+} from "@/lib/attachments";
+import {
   Send, ChevronDown, ChevronUp, Plus, Trash2,
   CheckCircle2, Loader2, AlertCircle, X, Eye,
+  Paperclip, Upload, FileText,
 } from "lucide-react";
 
 type Sections = Record<string, unknown>;
+type ReportAttachment = {
+  storageId: Id<"_storage">;
+  name: string;
+  contentType?: string;
+  size: number;
+  description?: string;
+  uploadedAt: number;
+  uploadedByName: string;
+  url: string | null;
+};
 
 export default function ReportEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -26,8 +44,15 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
   );
   const convexUser = useQuery(api.users.getByClerkId, clerkId ? { clerkId } : "skip");
   const template = useQuery(api.templates.getByDepartment, report?.departmentId ? { departmentId: report.departmentId } : "skip");
+  const attachments = useQuery(
+    api.reports.listAttachments,
+    report?._id && clerkId ? { reportId: report._id, clerkId } : "skip"
+  ) as ReportAttachment[] | undefined;
   const autosave = useMutation(api.reports.autosave);
   const submitReport = useMutation(api.reports.submit);
+  const generateAttachmentUploadUrl = useMutation(api.reports.generateAttachmentUploadUrl);
+  const attachFile = useMutation(api.reports.attachFile);
+  const removeAttachment = useMutation(api.reports.removeAttachment);
   const canEditReport = canEditReportForDepartment(convexUser, report?.departmentId);
 
   const [sections, setSections] = useState<Sections>({});
@@ -35,6 +60,11 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [attachmentDescription, setAttachmentDescription] = useState("");
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [attachmentStage, setAttachmentStage] = useState<"idle" | "compressing" | "uploading">("idle");
+  const [removingAttachmentId, setRemovingAttachmentId] = useState<Id<"_storage"> | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
   const initialized = useRef(false);
 
@@ -102,6 +132,74 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
     if (!report) return;
     await saveNow();
     router.push(`/reports/${report._id}`);
+  };
+
+  const handleAttachmentUpload = async (selectedFile: File | undefined) => {
+    if (!selectedFile || !report || !clerkId || attachmentStage !== "idle") return;
+    setAttachmentStage("compressing");
+    setAttachmentError(null);
+
+    try {
+      const preparedAttachment = await prepareAttachmentForUpload(selectedFile);
+      const file = preparedAttachment.file;
+      setAttachmentStage("uploading");
+
+      const uploadUrl = await generateAttachmentUploadUrl({
+        reportId: report._id,
+        clerkId,
+      });
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: file.type ? { "Content-Type": file.type } : undefined,
+        body: file,
+      });
+      if (!uploadResult.ok) throw new Error("Upload failed");
+
+      const { storageId } = (await uploadResult.json()) as {
+        storageId: Id<"_storage">;
+      };
+      const description = attachmentDescription.trim();
+      const compressionNote = preparedAttachment.compressed
+        ? `Compressed in browser from ${selectedFile.name} (${formatFileSize(preparedAttachment.originalSize)}).`
+        : "";
+      const attachmentNote = [description, compressionNote].filter(Boolean).join("\n");
+      await attachFile({
+        reportId: report._id,
+        storageId,
+        name: file.name,
+        size: file.size,
+        clerkId,
+        ...(file.type ? { contentType: file.type } : {}),
+        ...(attachmentNote ? { description: attachmentNote } : {}),
+      });
+
+      setAttachmentDescription("");
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    } catch (error) {
+      console.error(error);
+      setAttachmentError(
+        error instanceof AttachmentTooLargeError
+          ? error.message
+          : `Could not upload this attachment. Files must be ${formatFileSize(MAX_ATTACHMENT_BYTES)} or smaller after compression.`
+      );
+    } finally {
+      setAttachmentStage("idle");
+    }
+  };
+
+  const handleRemoveAttachment = async (storageId: Id<"_storage">) => {
+    if (!report || !clerkId || removingAttachmentId) return;
+    setRemovingAttachmentId(storageId);
+    setAttachmentError(null);
+
+    try {
+      await removeAttachment({ reportId: report._id, storageId, clerkId });
+    } catch (error) {
+      console.error(error);
+      setAttachmentError("Could not remove this attachment.");
+    } finally {
+      setRemovingAttachmentId(null);
+    }
   };
 
   if (
@@ -200,6 +298,110 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
             )}
           </div>
         ))}
+      </div>
+
+      {/* Attachments */}
+      <div className="mt-4 rounded-2xl bg-white border border-border-light shadow-sm overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-5 border-b border-border-light">
+          <div className="flex items-start gap-3">
+            <span className="w-8 h-8 rounded-lg bg-info-light text-info flex items-center justify-center">
+              <Paperclip size={15} />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-text-primary">Attachments</h2>
+              <p className="text-xs text-text-tertiary mt-0.5">
+                {(attachments ?? []).length} {(attachments ?? []).length === 1 ? "file" : "files"}
+              </p>
+            </div>
+          </div>
+          <div className="w-full sm:w-[340px] space-y-2">
+            <textarea
+              value={attachmentDescription}
+              onChange={(event) => setAttachmentDescription(event.target.value)}
+              placeholder="Optional note"
+              rows={2}
+              className="w-full px-3 py-2 rounded-xl border border-border bg-bg-primary text-xs resize-y min-h-[48px] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+            />
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              className="hidden"
+              onChange={(event) => void handleAttachmentUpload(event.target.files?.[0])}
+            />
+            <button
+              type="button"
+              onClick={() => attachmentInputRef.current?.click()}
+              disabled={attachmentStage !== "idle"}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-mid transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {attachmentStage !== "idle" ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+              {attachmentStage === "compressing"
+                ? "Compressing..."
+                : attachmentStage === "uploading"
+                  ? "Uploading..."
+                  : "Attach File"}
+            </button>
+            <p className="text-[11px] text-text-tertiary">
+              Max stored size: {formatFileSize(MAX_ATTACHMENT_BYTES)}
+            </p>
+            {attachmentError && (
+              <p className="flex items-center gap-1.5 text-xs text-danger">
+                <AlertCircle size={13} />
+                {attachmentError}
+              </p>
+            )}
+          </div>
+        </div>
+        {attachments === undefined ? (
+          <div className="p-5 space-y-2">
+            <div className="skeleton h-10 rounded-xl" />
+            <div className="skeleton h-10 rounded-xl" />
+          </div>
+        ) : attachments.length === 0 ? (
+          <div className="p-5 text-sm text-text-tertiary italic">No attachments.</div>
+        ) : (
+          <div className="divide-y divide-border-light">
+            {attachments.map((attachment) => (
+              <div key={attachment.storageId} className="flex items-center gap-3 p-4">
+                <span className="w-9 h-9 rounded-xl bg-bg-tertiary text-text-tertiary flex items-center justify-center shrink-0">
+                  <FileText size={16} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">{attachment.name}</p>
+                  {attachment.description && (
+                    <p className="text-xs text-text-secondary mt-0.5 break-words">{attachment.description}</p>
+                  )}
+                  <p className="text-[11px] text-text-tertiary mt-1">
+                    {formatAttachmentType(attachment.contentType)} / {formatFileSize(attachment.size)} / {attachment.uploadedByName}
+                  </p>
+                </div>
+                {attachment.url && (
+                  <a
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-secondary hover:bg-bg-tertiary transition-all"
+                  >
+                    Open
+                  </a>
+                )}
+                <button
+                  type="button"
+                  aria-label={`Remove ${attachment.name}`}
+                  onClick={() => void handleRemoveAttachment(attachment.storageId)}
+                  disabled={removingAttachmentId === attachment.storageId}
+                  className="p-2 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger-light transition-colors disabled:opacity-50"
+                >
+                  {removingAttachmentId === attachment.storageId ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Submit Modal */}

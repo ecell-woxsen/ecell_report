@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
   canManageDepartmentReport,
   canViewReport,
@@ -8,6 +8,9 @@ import {
   isLeadershipUser,
   requireReportManager,
 } from "./permissions";
+
+type ReportAttachment = NonNullable<Doc<"reports">["attachments"]>[number];
+const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
 
 function newestFirst(reports: Doc<"reports">[]) {
   return [...reports].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -24,6 +27,23 @@ function pickActiveWeeklyReport(reports: Doc<"reports">[]) {
     sortedReports.find((report) => report.status === "submitted") ??
     null
   );
+}
+
+function normalizeOptionalText(value?: string) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizeAttachmentName(value: string) {
+  const trimmed = value.trim();
+  return (trimmed || "Attachment").slice(0, 180);
+}
+
+function withoutAttachment(
+  attachments: ReportAttachment[] | undefined,
+  storageId: Id<"_storage">
+) {
+  return (attachments ?? []).filter((attachment) => attachment.storageId !== storageId);
 }
 
 export const createDraft = mutation({
@@ -81,6 +101,111 @@ export const autosave = mutation({
       activeMembersCount: args.activeMembersCount,
       updatedAt: Date.now(),
     });
+  },
+});
+
+export const generateAttachmentUploadUrl = mutation({
+  args: {
+    reportId: v.id("reports"),
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const report = await ctx.db.get(args.reportId);
+    if (!report) throw new Error("Report not found");
+    await requireReportManager(ctx, report.departmentId, args.clerkId);
+
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const attachFile = mutation({
+  args: {
+    reportId: v.id("reports"),
+    storageId: v.id("_storage"),
+    name: v.string(),
+    contentType: v.optional(v.string()),
+    size: v.number(),
+    description: v.optional(v.string()),
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const report = await ctx.db.get(args.reportId);
+    if (!report) throw new Error("Report not found");
+    const user = await requireReportManager(ctx, report.departmentId, args.clerkId);
+    if (!Number.isFinite(args.size) || args.size < 0) {
+      throw new Error("Invalid attachment size");
+    }
+
+    const metadata = await ctx.db.system.get("_storage", args.storageId);
+    if (!metadata) throw new Error("Uploaded file not found");
+    if (metadata.size > MAX_ATTACHMENT_BYTES) {
+      await ctx.storage.delete(args.storageId);
+      throw new Error("Attachment must be 3 MB or smaller");
+    }
+
+    const contentType = normalizeOptionalText(args.contentType);
+    const description = normalizeOptionalText(args.description);
+    const attachment: ReportAttachment = {
+      storageId: args.storageId,
+      name: normalizeAttachmentName(args.name),
+      size: metadata.size ?? args.size,
+      uploadedAt: Date.now(),
+      uploadedByClerkId: user.clerkId,
+      uploadedByName: user.name,
+      ...(contentType ? { contentType } : {}),
+      ...(description ? { description } : {}),
+    };
+
+    await ctx.db.patch(args.reportId, {
+      attachments: [...withoutAttachment(report.attachments, args.storageId), attachment],
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const removeAttachment = mutation({
+  args: {
+    reportId: v.id("reports"),
+    storageId: v.id("_storage"),
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const report = await ctx.db.get(args.reportId);
+    if (!report) throw new Error("Report not found");
+    await requireReportManager(ctx, report.departmentId, args.clerkId);
+
+    const remainingAttachments = withoutAttachment(report.attachments, args.storageId);
+    if (remainingAttachments.length === (report.attachments ?? []).length) {
+      throw new Error("Attachment not found");
+    }
+
+    await ctx.db.patch(args.reportId, {
+      attachments: remainingAttachments,
+      updatedAt: Date.now(),
+    });
+    await ctx.storage.delete(args.storageId);
+  },
+});
+
+export const listAttachments = query({
+  args: {
+    reportId: v.id("reports"),
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx, args.clerkId);
+    const report = await ctx.db.get(args.reportId);
+    if (!report || !canViewReport(user, report)) return [];
+
+    return await Promise.all(
+      (report.attachments ?? [])
+        .slice()
+        .sort((a, b) => b.uploadedAt - a.uploadedAt)
+        .map(async (attachment) => ({
+          ...attachment,
+          url: await ctx.storage.getUrl(attachment.storageId),
+        }))
+    );
   },
 });
 
