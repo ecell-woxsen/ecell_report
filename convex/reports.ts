@@ -228,10 +228,12 @@ export const submit = mutation({
       updatedAt: now,
     });
 
-    // Send notifications to all core team and president
+    // Send notifications to all organization leadership.
     const coreUsers = await ctx.db.query("users").collect();
     const notifyUsers = coreUsers.filter((u) =>
-      u.roles.some((r) => ["core_team", "president", "admin"].includes(r)) && u.approved
+      u.roles.some((r) =>
+        ["core_team", "president", "vice_president", "advisor", "admin"].includes(r)
+      ) && u.approved
     );
 
     for (const user of notifyUsers) {

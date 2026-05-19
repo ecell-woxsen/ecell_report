@@ -8,11 +8,11 @@ The app replaces scattered WhatsApp updates, stale spreadsheets, and memory-base
 
 E-Cell Reports is built around the way a student E-Cell actually works:
 
-- Department heads create one weekly report for their department.
+- Department heads and team leads create one weekly report for their department.
 - Reports use department-specific templates with metrics, task tracking, participation, challenges, and next-week plans.
-- Drafts autosave while the department head works.
+- Drafts autosave while the department report owner works.
 - Submitted reports become read-only records.
-- Core team, president, and admin users can review organization-wide progress.
+- Core team, president, vice president, advisor, and admin users can review organization-wide progress.
 - Leadership can comment on report sections and export reports for review or archival.
 
 ## Current Feature Map
@@ -22,7 +22,7 @@ E-Cell Reports is built around the way a student E-Cell actually works:
 | Landing page | Public product entry with sign-in and sign-up links |
 | Authentication | Clerk sign-in/sign-up with protected app routes |
 | Onboarding | Captures name, phone, year of study, department, and requested role |
-| Approval flow | New users remain pending until approved by an admin or president |
+| Approval flow | New users remain pending until approved by an admin, president, vice president, or advisor |
 | Dashboard | Department dashboard for members/heads and weekly status dashboard for leadership |
 | Reports | Searchable report list with status and department filters |
 | Report creation | `/reports/new` creates or reuses the current week's unfinished draft |
@@ -41,11 +41,14 @@ Roles are stored on Convex users and drive the navigation, dashboards, report ac
 | --- | --- | --- |
 | `member` | Regular department member | Dashboard, submitted department reports, team, notifications, settings |
 | `department_head` | Department lead | Department report drafts, submission flow, report history |
+| `team_lead` | Team lead | Same department report access as department heads |
 | `core_team` | E-Cell core leadership | Leadership dashboard, analytics, all reports, section comments |
 | `president` | E-Cell president | Leadership access plus admin navigation |
+| `vice_president` | E-Cell vice president | Same access as president |
+| `advisor` | E-Cell advisor | Same access as president |
 | `admin` | Operations or technical admin | Admin navigation for users, roles, departments, and announcements |
 
-Approval is separate from role. A signed-in but unapproved user sees a pending approval screen until an admin or president approves the account.
+Approval is separate from role. A signed-in but unapproved user sees a pending approval screen until an admin, president, vice president, or advisor approves the account.
 
 ## Report Workflow
 
@@ -56,7 +59,7 @@ Sign in
 Onboarding and approval
   |
   v
-Department head opens New Report
+Department head or team lead opens New Report
   |
   v
 Current-week draft is created or reused
@@ -65,7 +68,7 @@ Current-week draft is created or reused
 Editor autosaves section data
   |
   v
-Department head submits
+Department head or team lead submits
   |
   v
 Submitted report becomes read-only
@@ -80,22 +83,22 @@ Important implementation details:
 - `New Report` reuses an unfinished draft for the same department and week.
 - `New Report` does not route a user to an already submitted report.
 - Department members can only see submitted reports for their department.
-- Department heads can edit drafts only for their own department.
+- Department heads and team leads can edit drafts only for their own department.
 - Leadership users can view reports across departments and leave section-level comments.
 
 ## Default Departments
 
-The app seeds these departments when the departments table is empty:
+The app seeds these departments and refreshes old default department names:
 
 | Department | Slug | Focus |
 | --- | --- | --- |
-| Outreach | `outreach` | Founder outreach, sponsorships, partnerships |
+| Outreach and Partnerships | `outreach` | Founder outreach, sponsorships, and partnerships |
 | Tech | `tech` | Technical development and infrastructure |
 | Marketing | `marketing` | Social media, campaigns, content |
 | Finance | `finance` | Budget management, reimbursements |
 | Events | `events` | Event planning and execution |
 | Design | `design` | Visual design and creative assets |
-| PR & Partnerships | `pr` | Public relations and media |
+| Documentation | `documentation` | Documentation, records, and public-facing updates |
 
 Default report templates are generated per department and include shared sections plus department-specific metrics, work areas, budget tables, campaign/event tables, or lead tracking where relevant.
 
@@ -284,7 +287,7 @@ Typical flow:
 2. Complete onboarding.
 3. Find the user in the Convex `users` table.
 4. Set `approved` to `true`.
-5. Set `roles` to `["admin"]` or `["president"]`.
+5. Set `roles` to `["admin"]`, `["president"]`, `["vice_president"]`, or `["advisor"]`.
 6. Use `/admin/users` for future approvals, role changes, and department assignments.
 
 ## Route Protection and Permissions
@@ -293,7 +296,7 @@ This app uses Next.js 16 `proxy.ts`, not the older `middleware.ts` convention. T
 
 Backend permission checks currently protect the report and comment workflow:
 
-- Report managers must be approved department heads for their own department.
+- Report managers must be approved department heads or team leads for their own department.
 - Leadership users can view all reports and comment on report sections.
 - Non-leadership members only see submitted reports from their own department.
 
@@ -316,7 +319,7 @@ Before production use:
 - Set all required environment variables in the hosting provider and Convex.
 - Configure the Clerk Convex JWT template.
 - Configure the Clerk webhook to the Convex `/clerk-webhook` HTTP action.
-- Bootstrap the first admin or president account.
+- Bootstrap the first admin, president, vice president, or advisor account.
 - Run `bun run lint`.
 - Run `bun run build`.
 - Test sign-up, onboarding, pending approval, admin approval, report creation, autosave, submit, comments, exports, notifications, role requests, and analytics.

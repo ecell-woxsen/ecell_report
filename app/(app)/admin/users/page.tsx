@@ -6,19 +6,33 @@ import { useState } from "react";
 import { CheckCircle2, UserCheck, UserX, ChevronDown, X } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 
-const roles = ["member", "department_head", "core_team", "president", "admin"] as const;
+const roles = [
+  "member",
+  "department_head",
+  "team_lead",
+  "core_team",
+  "president",
+  "vice_president",
+  "advisor",
+  "admin",
+] as const;
 type Role = (typeof roles)[number];
 
 const roleLabels: Record<Role, string> = {
   member: "Member",
   department_head: "Department Head",
+  team_lead: "Team Lead",
   core_team: "Core Team",
   president: "President",
+  vice_president: "Vice President",
+  advisor: "Advisor",
   admin: "Admin",
 };
 
 function formatRoles(userRoles: readonly string[]) {
-  return userRoles.map((role) => role.replace("_", " ")).join(", ");
+  return userRoles
+    .map((role) => roleLabels[role as Role] ?? role.replace(/_/g, " "))
+    .join(", ");
 }
 
 export default function UsersAdminPage() {

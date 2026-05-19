@@ -27,12 +27,22 @@ export default function OnboardingPage() {
     phone?: string;
     yearOfStudy?: string;
     departmentId?: string;
-    requestedRole?: "member" | "department_head";
+    requestedRole?: "member" | "department_head" | "team_lead";
   }>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (departments !== undefined && departments.length === 0) {
+    const needsDepartmentSeed =
+      departments !== undefined &&
+      (departments.length === 0 ||
+        departments.some(
+          (dept) =>
+            dept.slug === "pr" ||
+            dept.name === "Outreach" ||
+            dept.name === "PR & Partnerships"
+        ));
+
+    if (needsDepartmentSeed) {
       seedDepts().then(() => seedTemplates()).catch(console.error);
     }
   }, [departments, seedDepts, seedTemplates]);
@@ -58,7 +68,9 @@ export default function OnboardingPage() {
     form.requestedRole ??
     (convexUser?.roles.includes("department_head")
       ? "department_head"
-      : "member");
+      : convexUser?.roles.includes("team_lead")
+        ? "team_lead"
+        : "member");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +199,7 @@ export default function OnboardingPage() {
               {[
                 { value: "member", label: "Member" },
                 { value: "department_head", label: "Department Head" },
+                { value: "team_lead", label: "Team Lead" },
               ].map((role) => (
                 <button
                   key={role.value}
@@ -194,7 +207,7 @@ export default function OnboardingPage() {
                   onClick={() =>
                     setForm({
                       ...form,
-                      requestedRole: role.value as "member" | "department_head",
+                      requestedRole: role.value as "member" | "department_head" | "team_lead",
                     })
                   }
                   className={`px-3.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${

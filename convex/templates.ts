@@ -185,6 +185,7 @@ export const seedTemplates = mutation({
       finance: ["Budget Requests Processed", "Reimbursements Cleared", "Pending Approvals", "Expenses Logged", "Invoices Raised"],
       events: ["Events Planned", "Events Executed", "Registrations Collected", "Sponsors Confirmed", "Venues Booked", "Volunteers Engaged"],
       design: ["Design Requests Received", "Designs Delivered", "Revisions Completed", "Assets Published", "Pending Requests"],
+      documentation: ["Documents Published", "Meeting Minutes Logged", "Reports Compiled", "Content Drafts Reviewed", "Public Updates Published", "Archive Items Updated"],
       pr: ["Media Mentions", "Press Releases Sent", "Partnership MoUs Signed", "Influencers Contacted", "Coverage Pieces Published"],
     };
 
@@ -196,6 +197,7 @@ export const seedTemplates = mutation({
       finance: ["Budget Management", "Reimbursements", "Financial Planning", "Reporting"],
       events: ["Event Planning", "Event Execution", "Venue & Logistics", "Post-Event Analysis"],
       design: ["Design Requests", "Brand Assets", "Marketing Collateral", "UI/UX"],
+      documentation: ["Meeting Documentation", "Report Compilation", "Knowledge Base & Archives", "Public Updates"],
       pr: ["Media Relations", "Press Coverage", "Partnership Development", "Public Communications"],
     };
 
@@ -233,7 +235,7 @@ export const seedTemplates = mutation({
         },
       });
 
-      // Optional: Leads (Outreach, PR, Finance)
+      // Optional: Leads (Outreach, legacy PR, Finance)
       if (["outreach", "pr", "finance"].includes(dept.slug)) {
         sections.push({
           key: "leads",

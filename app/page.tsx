@@ -80,7 +80,7 @@ export default function HomePage() {
             <p className="text-lg text-text-secondary leading-relaxed mb-10 max-w-[540px] mx-auto">
               A purpose-built platform for E-Cell departments to submit
               structured weekly reports. Leadership gets full visibility.
-              Department heads save time.
+              Department leads save time.
             </p>
             <div className="flex items-center justify-center gap-4">
               <Link
@@ -154,7 +154,7 @@ export default function HomePage() {
               {
                 icon: Users,
                 title: "Team Management",
-                desc: "Role-based access for members, department heads, core team, and president.",
+                desc: "Role-based access for members, team leads, department heads, and leadership.",
                 color: "purple",
               },
               {
@@ -216,13 +216,13 @@ export default function HomePage() {
 
           <div className="flex flex-wrap justify-center gap-3">
             {[
-              { name: "Outreach", color: "#1D9E75" },
+              { name: "Outreach and Partnerships", color: "#1D9E75" },
               { name: "Tech", color: "#185FA5" },
               { name: "Marketing", color: "#E05E1A" },
               { name: "Finance", color: "#3B6D11" },
               { name: "Events", color: "#7C3AED" },
               { name: "Design", color: "#DB2777" },
-              { name: "PR & Partnerships", color: "#0891B2" },
+              { name: "Documentation", color: "#0891B2" },
             ].map((dept) => (
               <div
                 key={dept.name}

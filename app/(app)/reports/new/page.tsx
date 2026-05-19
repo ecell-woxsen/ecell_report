@@ -111,7 +111,7 @@ export default function NewReportPage() {
             Report submission is restricted
           </h1>
           <p className="text-sm text-text-secondary mb-5">
-            Approved department heads, core team, presidents, and admins can create and submit reports.
+            Approved department heads, team leads, core team, presidents, vice presidents, advisors, and admins can create and submit reports.
           </p>
           <Link
             href="/reports"

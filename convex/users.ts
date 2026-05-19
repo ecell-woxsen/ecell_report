@@ -6,8 +6,11 @@ import type { Doc } from "./_generated/dataModel";
 const roleValidator = v.union(
   v.literal("member"),
   v.literal("department_head"),
+  v.literal("team_lead"),
   v.literal("core_team"),
   v.literal("president"),
+  v.literal("vice_president"),
+  v.literal("advisor"),
   v.literal("admin")
 );
 
@@ -16,9 +19,23 @@ type Role = Doc<"users">["roles"][number];
 const roleRank: Record<Role, number> = {
   member: 0,
   department_head: 1,
+  team_lead: 1,
   core_team: 2,
   president: 3,
+  vice_president: 3,
+  advisor: 3,
   admin: 3,
+};
+
+const roleLabels: Record<Role, string> = {
+  member: "Member",
+  department_head: "Department Head",
+  team_lead: "Team Lead",
+  core_team: "Core Team",
+  president: "President",
+  vice_president: "Vice President",
+  advisor: "Advisor",
+  admin: "Admin",
 };
 
 function highestRoleRank(roles: Role[]) {
@@ -27,7 +44,7 @@ function highestRoleRank(roles: Role[]) {
 }
 
 function formatRoles(roles: Role[]) {
-  return roles.map((role) => role.replace("_", " ")).join(", ");
+  return roles.map((role) => roleLabels[role]).join(", ");
 }
 
 function rolesAreSame(a: Role[], b: Role[]) {
@@ -42,7 +59,9 @@ async function notifyAdminsOfRoleRequest(ctx: MutationCtx, user: Doc<"users">, r
   const admins = users.filter(
     (candidate) =>
       candidate.approved &&
-      candidate.roles.some((role) => role === "admin" || role === "president")
+      candidate.roles.some((role) =>
+        ["admin", "president", "vice_president", "advisor"].includes(role)
+      )
   );
 
   for (const admin of admins) {
@@ -97,7 +116,11 @@ export const completeOnboarding = mutation({
     phone: v.string(),
     yearOfStudy: v.string(),
     departmentId: v.id("departments"),
-    requestedRole: v.union(v.literal("member"), v.literal("department_head")),
+    requestedRole: v.union(
+      v.literal("member"),
+      v.literal("department_head"),
+      v.literal("team_lead")
+    ),
     email: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
   },

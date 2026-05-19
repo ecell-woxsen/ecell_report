@@ -21,6 +21,22 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+const roleLabels: Record<string, string> = {
+  member: "Member",
+  department_head: "Department Head",
+  team_lead: "Team Lead",
+  core_team: "Core Team",
+  president: "President",
+  vice_president: "Vice President",
+  advisor: "Advisor",
+  admin: "Admin",
+};
+
+function formatRole(role?: string) {
+  if (!role) return "Member";
+  return roleLabels[role] ?? role.replace(/_/g, " ");
+}
+
 function NavItem({
   href,
   icon: Icon,
@@ -73,10 +89,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   );
 
   const isAdmin = convexUser?.roles?.some((r) =>
-    ["admin", "president"].includes(r)
+    ["admin", "president", "vice_president", "advisor"].includes(r)
   );
   const isCoreTeam = convexUser?.roles?.some((r) =>
-    ["core_team", "president", "admin"].includes(r)
+    ["core_team", "president", "vice_president", "advisor", "admin"].includes(r)
   );
 
   const needsOnboarding =
@@ -212,8 +228,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <p className="text-[13px] font-semibold text-text-primary truncate leading-tight">
                 {convexUser?.name || user?.fullName || "User"}
               </p>
-              <p className="text-[11px] text-text-tertiary truncate capitalize">
-                {convexUser?.roles?.[0]?.replace("_", " ") || "Member"}
+              <p className="text-[11px] text-text-tertiary truncate">
+                {formatRole(convexUser?.roles?.[0])}
               </p>
             </div>
           </div>

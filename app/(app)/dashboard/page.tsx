@@ -39,14 +39,26 @@ export default function DashboardPage() {
   const departments = useQuery(api.departments.listAll);
 
   useEffect(() => {
-    if (departments !== undefined && departments.length === 0) {
+    const needsDepartmentSeed =
+      departments !== undefined &&
+      (departments.length === 0 ||
+        departments.some(
+          (dept) =>
+            dept.slug === "pr" ||
+            dept.name === "Outreach" ||
+            dept.name === "PR & Partnerships"
+        ));
+
+    if (needsDepartmentSeed) {
       seedDepts().then(() => seedTemplates());
     }
   }, [departments, seedDepts, seedTemplates]);
 
   if (!convexUser) return <DashboardSkeleton />;
 
-  const isPresident = convexUser.roles.some((r) => ["president", "admin"].includes(r));
+  const isPresident = convexUser.roles.some((r) =>
+    ["president", "vice_president", "advisor", "admin"].includes(r)
+  );
   const isCoreTeam = isLeadershipUser(convexUser);
   const canSubmitReport = canSubmitDepartmentReport(convexUser);
 

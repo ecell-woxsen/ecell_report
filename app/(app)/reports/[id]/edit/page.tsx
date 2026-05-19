@@ -219,7 +219,7 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
             Editing is restricted
           </h1>
           <p className="text-sm text-text-secondary mb-5">
-            Approved department heads, core team, presidents, and admins can edit and submit reports.
+            Approved department heads, team leads, core team, presidents, vice presidents, advisors, and admins can edit and submit reports.
           </p>
           <Link
             href={report ? `/reports/${report._id}` : "/reports"}

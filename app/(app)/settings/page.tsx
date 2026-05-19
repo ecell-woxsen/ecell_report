@@ -6,22 +6,37 @@ import { api } from "@/convex/_generated/api";
 import { useState } from "react";
 import { AlertCircle, Building2, CheckCircle2, GraduationCap, Loader2, Mail, Phone, Shield } from "lucide-react";
 
-const roles = ["member", "department_head", "core_team", "president", "admin"] as const;
+const roles = [
+  "member",
+  "department_head",
+  "team_lead",
+  "core_team",
+  "president",
+  "vice_president",
+  "advisor",
+  "admin",
+] as const;
 type Role = (typeof roles)[number];
 
 const roleRank: Record<Role, number> = {
   member: 0,
   department_head: 1,
+  team_lead: 1,
   core_team: 2,
   president: 3,
+  vice_president: 3,
+  advisor: 3,
   admin: 3,
 };
 
 const roleLabels: Record<Role, string> = {
   member: "Member",
   department_head: "Department Head",
+  team_lead: "Team Lead",
   core_team: "Core Team",
   president: "President",
+  vice_president: "Vice President",
+  advisor: "Advisor",
   admin: "Admin",
 };
 
@@ -30,6 +45,12 @@ function getHighestRole(userRoles: string[]): Role {
     if (!userRoles.includes(role)) return highest;
     return roleRank[role] > roleRank[highest] ? role : highest;
   }, "member");
+}
+
+function formatRoles(userRoles: readonly string[]) {
+  return userRoles
+    .map((role) => roleLabels[role as Role] ?? role.replace(/_/g, " "))
+    .join(", ");
 }
 
 export default function SettingsPage() {
@@ -58,7 +79,7 @@ export default function SettingsPage() {
       });
 
       if (result.status === "pending") {
-        setRoleMessage("Role change requested. An admin needs to approve this promotion.");
+        setRoleMessage("Role change requested. An admin, president, vice president, or advisor needs to approve this promotion.");
       } else if (result.status === "updated") {
         setRoleMessage("Role updated.");
       } else {
@@ -96,7 +117,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="text-[15px] font-semibold text-text-primary tracking-tight">{convexUser.name}</h2>
-            <p className="text-[11px] text-text-tertiary capitalize mt-0.5">{convexUser.roles.map(r => r.replace("_", " ")).join(", ")}</p>
+            <p className="text-[11px] text-text-tertiary mt-0.5">{formatRoles(convexUser.roles)}</p>
           </div>
         </div>
 
@@ -105,7 +126,7 @@ export default function SettingsPage() {
           { icon: Phone, label: "Phone", value: convexUser.phone || "Not set" },
           { icon: GraduationCap, label: "Year of Study", value: convexUser.yearOfStudy || "Not set" },
           { icon: Building2, label: "Department", value: dept?.name || "Unassigned" },
-          { icon: Shield, label: "Roles", value: convexUser.roles.map(r => r.replace("_", " ")).join(", ") },
+          { icon: Shield, label: "Roles", value: formatRoles(convexUser.roles) },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-3 py-3">
             <div className="w-9 h-9 rounded-xl bg-bg-tertiary flex items-center justify-center shrink-0">
@@ -123,7 +144,7 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-[15px] font-semibold text-text-primary tracking-tight">Role</h2>
           <p className="text-text-tertiary text-[13px] mt-0.5">
-            Promotions need admin approval. Moving to a lower access role updates immediately.
+            Promotions need admin, president, vice president, or advisor approval. Moving to a lower access role updates immediately.
           </p>
         </div>
 

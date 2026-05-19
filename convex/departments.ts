@@ -75,24 +75,35 @@ export const seed = mutation({
   args: {},
   handler: async (ctx) => {
     const existing = await ctx.db.query("departments").collect();
-    if (existing.length > 0) return;
+    const existingBySlug = new Map(existing.map((dept) => [dept.slug, dept]));
 
-    const departments = [
-      { name: "Outreach", slug: "outreach", colorTag: "#1D9E75", description: "Founder outreach, sponsorships, partnerships" },
+    const defaultDepartments = [
+      { name: "Outreach and Partnerships", slug: "outreach", colorTag: "#1D9E75", description: "Founder outreach, sponsorships, and partnerships" },
       { name: "Tech", slug: "tech", colorTag: "#185FA5", description: "Technical development and infrastructure" },
       { name: "Marketing", slug: "marketing", colorTag: "#E05E1A", description: "Social media, campaigns, content" },
       { name: "Finance", slug: "finance", colorTag: "#3B6D11", description: "Budget management, reimbursements" },
       { name: "Events", slug: "events", colorTag: "#7C3AED", description: "Event planning and execution" },
       { name: "Design", slug: "design", colorTag: "#DB2777", description: "Visual design and creative assets" },
-      { name: "PR & Partnerships", slug: "pr", colorTag: "#0891B2", description: "Public relations and media" },
+      { name: "Documentation", slug: "documentation", colorTag: "#0891B2", description: "Documentation, records, and public-facing updates" },
     ];
 
-    for (const dept of departments) {
-      await ctx.db.insert("departments", {
-        ...dept,
-        active: true,
-        createdAt: Date.now(),
-      });
+    for (const dept of defaultDepartments) {
+      const existingDept =
+        existingBySlug.get(dept.slug) ||
+        (dept.slug === "documentation" ? existingBySlug.get("pr") : undefined);
+
+      if (existingDept) {
+        await ctx.db.patch(existingDept._id, {
+          ...dept,
+          active: true,
+        });
+      } else {
+        await ctx.db.insert("departments", {
+          ...dept,
+          active: true,
+          createdAt: Date.now(),
+        });
+      }
     }
   },
 });

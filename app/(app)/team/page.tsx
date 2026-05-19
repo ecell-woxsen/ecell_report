@@ -3,7 +3,24 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState } from "react";
-import { Users, Search, Building2, Mail, Phone, Shield } from "lucide-react";
+import { Users, Search, Mail, Phone, Shield } from "lucide-react";
+
+const roleLabels: Record<string, string> = {
+  member: "Member",
+  department_head: "Department Head",
+  team_lead: "Team Lead",
+  core_team: "Core Team",
+  president: "President",
+  vice_president: "Vice President",
+  advisor: "Advisor",
+  admin: "Admin",
+};
+
+function formatRoles(userRoles: readonly string[]) {
+  return userRoles
+    .map((role) => roleLabels[role] ?? role.replace(/_/g, " "))
+    .join(", ");
+}
 
 export default function TeamPage() {
   const users = useQuery(api.users.listAll);
@@ -67,7 +84,7 @@ export default function TeamPage() {
               <div className="mt-3 space-y-1">
                 <div className="flex items-center gap-2 text-[11px] text-text-tertiary"><Mail size={11} /><span className="truncate">{user.email}</span></div>
                 {user.phone && <div className="flex items-center gap-2 text-[11px] text-text-tertiary"><Phone size={11} />{user.phone}</div>}
-                <div className="flex items-center gap-2 text-[11px] text-text-tertiary"><Shield size={11} />{user.roles.map(r => r.replace("_", " ")).join(", ")}</div>
+                <div className="flex items-center gap-2 text-[11px] text-text-tertiary"><Shield size={11} />{formatRoles(user.roles)}</div>
               </div>
             </div>
           ))}

@@ -32,7 +32,7 @@ export default function AnalyticsPage() {
             Analytics is restricted
           </h1>
           <p className="text-sm text-text-secondary">
-            Organization-wide analytics are available to the core team.
+            Organization-wide analytics are available to leadership.
           </p>
         </div>
       </div>

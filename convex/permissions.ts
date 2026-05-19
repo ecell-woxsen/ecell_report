@@ -8,13 +8,18 @@ type Report = Doc<"reports">;
 const leadershipRoles = new Set<User["roles"][number]>([
   "core_team",
   "president",
+  "vice_president",
+  "advisor",
   "admin",
 ]);
 
 const departmentReportRoles = new Set<User["roles"][number]>([
   "department_head",
+  "team_lead",
   "core_team",
   "president",
+  "vice_president",
+  "advisor",
   "admin",
 ]);
 
@@ -38,7 +43,12 @@ export function canViewReport(user: User | null, report: Report) {
   if (!user?.approved) return false;
   if (isLeadershipUser(user)) return true;
   if (user.departmentId !== report.departmentId) return false;
-  if (user.roles.includes("department_head")) return true;
+  if (
+    user.roles.includes("department_head") ||
+    user.roles.includes("team_lead")
+  ) {
+    return true;
+  }
   return report.status === "submitted";
 }
 
@@ -67,7 +77,7 @@ export async function requireReportManager(
   const user = await requireApprovedUser(ctx, fallbackClerkId);
   if (!canManageDepartmentReport(user, departmentId)) {
     throw new Error(
-      "Only department heads, core team, presidents, and admins can manage reports"
+      "Only department heads, team leads, core team, presidents, vice presidents, advisors, and admins can manage reports"
     );
   }
   return user;
@@ -76,7 +86,7 @@ export async function requireReportManager(
 export async function requireLeadershipUser(ctx: Ctx) {
   const user = await requireApprovedUser(ctx);
   if (!isLeadershipUser(user)) {
-    throw new Error("Only core team users can perform this action");
+    throw new Error("Only leadership users can perform this action");
   }
   return user;
 }

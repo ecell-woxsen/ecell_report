@@ -13,8 +13,11 @@ export default defineSchema({
       v.union(
         v.literal("member"),
         v.literal("department_head"),
+        v.literal("team_lead"),
         v.literal("core_team"),
         v.literal("president"),
+        v.literal("vice_president"),
+        v.literal("advisor"),
         v.literal("admin")
       )
     ),
@@ -23,8 +26,11 @@ export default defineSchema({
         v.union(
           v.literal("member"),
           v.literal("department_head"),
+          v.literal("team_lead"),
           v.literal("core_team"),
           v.literal("president"),
+          v.literal("vice_president"),
+          v.literal("advisor"),
           v.literal("admin")
         )
       )
