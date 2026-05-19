@@ -7,6 +7,7 @@ import { use, useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { formatAttachmentType, formatFileSize } from "@/lib/attachments";
+import { normalizeDepartmentName } from "@/lib/departments";
 import {
   AlertCircle, CheckCircle2, Calendar, User, MessageSquare, Send,
   ArrowLeft, Download, ChevronDown, ChevronUp, FileSpreadsheet, Edit3,
@@ -112,6 +113,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
   const enabledSections = template.sections.filter(s => s.enabled).sort((a, b) => a.order - b.order);
   const isCoreTeam = isLeadershipUser(convexUser);
   const canEditReport = canEditReportForDepartment(convexUser, report.departmentId);
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const sectionComments = (key: string) => comments?.filter(c => c.sectionKey === key && !c.parentId) || [];
 
   const exportToExcel = () => {
@@ -154,7 +156,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
     });
 
     wb.Props = {
-      Title: `${report.departmentName} Weekly Report - ${report.weekLabel}`,
+      Title: `${departmentName} Weekly Report - ${report.weekLabel}`,
       Subject: "E-Cell weekly accountability report",
       Author: report.departmentHeadName,
       Company: "E-Cell",
@@ -212,7 +214,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
       );
     }
 
-    XLSX.writeFile(wb, `${toFileSlug(report.departmentName)}_${toFileSlug(report.weekLabel)}_weekly_report.xlsx`, {
+    XLSX.writeFile(wb, `${toFileSlug(departmentName)}_${toFileSlug(report.weekLabel)}_weekly_report.xlsx`, {
       bookType: "xlsx",
       cellDates: true,
       compression: true,
@@ -246,7 +248,7 @@ export default function ReportViewerPage({ params }: { params: Promise<{ id: str
       <div className="p-6 rounded-2xl bg-gradient-to-r from-brand to-brand-mid text-white mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold">{report.departmentName} – Weekly Report</h1>
+            <h1 className="text-xl font-bold">{departmentName} – Weekly Report</h1>
             <p className="text-white/80 text-sm mt-1">{report.weekLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -373,6 +375,7 @@ async function exportReportToPdf({
   comments: any[];
   attachments: ReportAttachment[];
 }) {
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
@@ -483,7 +486,7 @@ async function exportReportToPdf({
   }
 
   stampPdfPages(ctx, report, logoDataUrl);
-  doc.save(`${toFileSlug(report.departmentName)}_${toFileSlug(report.weekLabel)}_weekly_report.pdf`);
+  doc.save(`${toFileSlug(departmentName)}_${toFileSlug(report.weekLabel)}_weekly_report.pdf`);
 }
 
 const pdfColors = {
@@ -523,7 +526,7 @@ function addPdfCover(ctx: PdfContext, report: any, sectionSummaries: any[], comm
   doc.setFontSize(10);
   doc.text("E-CELL WEEKLY REPORT", margin, 42);
   doc.setFontSize(25);
-  doc.text(report.departmentName, margin, 78);
+  doc.text(normalizeDepartmentName(report.departmentName), margin, 78);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   doc.text(report.weekLabel, margin, 104);
@@ -706,7 +709,7 @@ function stampPdfPages(ctx: PdfContext, report: any, logoDataUrl?: string) {
       doc.setTextColor(...pdfColors.brandDark);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text(`${report.departmentName} Weekly Report`, logoDataUrl ? margin + 38 : margin, 36);
+      doc.text(`${normalizeDepartmentName(report.departmentName)} Weekly Report`, logoDataUrl ? margin + 38 : margin, 36);
       doc.setTextColor(...pdfColors.muted);
       doc.setFont("helvetica", "normal");
       doc.text(report.weekLabel, pageWidth - margin, 36, { align: "right" });
@@ -779,6 +782,7 @@ function buildOverviewSheet({
   metricRows: any[][];
   narrativeRows: any[][];
 }) {
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const completedSections = sheetSummaries.filter((s) => s.status === "Complete").length;
   const submittedRows = sheetSummaries.reduce((total, s) => total + (typeof s.records === "number" ? s.records : 0), 0);
   const actionRequired = comments.filter((c) => c.tag === "Action Required" && !c.resolved).length;
@@ -786,10 +790,10 @@ function buildOverviewSheet({
   const workbookSheetCount = new Set(sheetSummaries.map((summary) => summary.sheetName)).size + 1 + (comments.length > 0 ? 1 : 0) + (attachments.length > 0 ? 1 : 0);
   const navigationStartRow = 15;
   const data = [
-    [`${report.departmentName} Weekly Report`],
+    [`${departmentName} Weekly Report`],
     [],
     ["Report Details"],
-    ["Department", report.departmentName, "Week", report.weekLabel],
+    ["Department", departmentName, "Week", report.weekLabel],
     ["Submitted By", report.departmentHeadName, "Submitted At", submittedAt],
     ["Status", labelize(report.status), "Active Members", report.activeMembersCount ?? ""],
     [],
@@ -847,9 +851,10 @@ function buildOverviewSheet({
 }
 
 function buildMetricsSheet(report: any, metricRows: any[][]) {
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const data = [
     ["Performance Metrics"],
-    ["Department", report.departmentName, "Week", report.weekLabel],
+    ["Department", departmentName, "Week", report.weekLabel],
     ["Submitted By", report.departmentHeadName, "Generated", new Date()],
     [],
     ["Section", "Metric", "Value", "Notes"],
@@ -873,9 +878,10 @@ function buildMetricsSheet(report: any, metricRows: any[][]) {
 }
 
 function buildNarrativeSheet(report: any, narrativeRows: any[][]) {
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const data = [
     ["Narrative Sections"],
-    ["Department", report.departmentName, "Week", report.weekLabel],
+    ["Department", departmentName, "Week", report.weekLabel],
     ["Submitted By", report.departmentHeadName, "Generated", new Date()],
     [],
     ["Section", "Field", "Details"],
@@ -896,6 +902,7 @@ function buildNarrativeSheet(report: any, narrativeRows: any[][]) {
 }
 
 function buildTableSectionSheet(report: any, section: any, value: any) {
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const rows = Array.isArray(value) ? value : [];
   const columns = getTableColumns(section, rows);
   const headerRowNumber = 5;
@@ -911,7 +918,7 @@ function buildTableSectionSheet(report: any, section: any, value: any) {
 
   const data: any[][] = [
     [section.title],
-    ["Report", `${report.departmentName} - ${report.weekLabel}`, "Submitted By", report.departmentHeadName],
+    ["Report", `${departmentName} - ${report.weekLabel}`, "Submitted By", report.departmentHeadName],
     ["Section Notes", section.description || ""],
     [],
     columns,
@@ -960,11 +967,12 @@ function buildTableSectionSheet(report: any, section: any, value: any) {
 }
 
 function buildFeedbackSheet(report: any, enabledSections: any[], comments: any[]) {
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const sectionTitles = new Map(enabledSections.map((section) => [section.key, section.title]));
   const sortedComments = [...comments].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   const data = [
     ["Feedback & Review Notes"],
-    ["Department", report.departmentName, "Week", report.weekLabel],
+    ["Department", departmentName, "Week", report.weekLabel],
     ["Submitted By", report.departmentHeadName, "Generated", new Date()],
     [],
     ["Section", "Thread", "Tag", "Status", "Author", "Created", "Comment"],
@@ -1002,9 +1010,10 @@ function buildFeedbackSheet(report: any, enabledSections: any[], comments: any[]
 }
 
 function buildAttachmentsSheet(report: any, attachments: ReportAttachment[]) {
+  const departmentName = normalizeDepartmentName(report.departmentName);
   const data = [
     ["Attachments"],
-    ["Department", report.departmentName, "Week", report.weekLabel],
+    ["Department", departmentName, "Week", report.weekLabel],
     ["Submitted By", report.departmentHeadName, "Generated", new Date()],
     [],
     ["File", "Type", "Size", "Uploaded By", "Uploaded At", "Note", "Link"],

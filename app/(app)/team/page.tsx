@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState } from "react";
 import { Users, Search, Mail, Phone, Shield } from "lucide-react";
+import { normalizeDepartmentName } from "@/lib/departments";
 
 const roleLabels: Record<string, string> = {
   member: "Member",
@@ -39,7 +40,8 @@ export default function TeamPage() {
     return true;
   });
 
-  const getDeptName = (id?: string) => departments.find(d => d._id === id)?.name || "Unassigned";
+  const getDeptName = (id?: string) =>
+    normalizeDepartmentName(departments.find(d => d._id === id));
   const getDeptColor = (id?: string) => departments.find(d => d._id === id)?.colorTag || "#8B929A";
 
   return (
@@ -56,7 +58,7 @@ export default function TeamPage() {
         </div>
           <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="px-3.5 py-2 rounded-xl border border-border bg-white text-[13px] text-text-secondary focus:outline-none">
           <option value="all">All Departments</option>
-          {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+          {departments.map(d => <option key={d._id} value={d._id}>{normalizeDepartmentName(d)}</option>)}
         </select>
       </div>
 

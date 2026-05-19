@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { canEditReportForDepartment } from "@/lib/permissions";
+import { normalizeDepartmentName } from "@/lib/departments";
 import {
   AttachmentTooLargeError,
   MAX_ATTACHMENT_BYTES,
@@ -54,6 +55,7 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
   const attachFile = useMutation(api.reports.attachFile);
   const removeAttachment = useMutation(api.reports.removeAttachment);
   const canEditReport = canEditReportForDepartment(convexUser, report?.departmentId);
+  const departmentName = normalizeDepartmentName(report?.departmentName);
 
   const [sections, setSections] = useState<Sections>({});
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
@@ -249,7 +251,7 @@ export default function ReportEditorPage({ params }: { params: Promise<{ id: str
       <div className="sticky top-16 z-20 bg-bg-primary/95 backdrop-blur-sm pb-4 mb-6 -mx-2 px-2 pt-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-border-light shadow-sm">
           <div>
-            <h1 className="text-lg font-semibold text-text-primary">{report.departmentName}</h1>
+            <h1 className="text-lg font-semibold text-text-primary">{departmentName}</h1>
             <p className="text-xs text-text-tertiary">
               {report.weekLabel} - {isSubmitted ? "Submitted report" : "Draft report"}
             </p>

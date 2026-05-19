@@ -8,6 +8,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { canSubmitDepartmentReport, isLeadershipUser } from "@/lib/permissions";
+import { normalizeDepartmentName } from "@/lib/departments";
 import type { Id } from "@/convex/_generated/dataModel";
 
 function getCurrentWeekStart(): string {
@@ -206,7 +207,7 @@ export default function NewReportPage() {
                 <option value="">Select department</option>
                 {availableDepartments.map((department) => (
                   <option key={department._id} value={department._id}>
-                    {department.name}
+                    {normalizeDepartmentName(department)}
                   </option>
                 ))}
               </select>
@@ -217,7 +218,7 @@ export default function NewReportPage() {
                 Department
               </p>
               <div className="px-3.5 py-2.5 rounded-xl border border-border bg-bg-primary text-sm text-text-primary">
-                {availableDepartments[0].name}
+                {normalizeDepartmentName(availableDepartments[0])}
               </div>
             </div>
           )}

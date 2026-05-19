@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useState } from "react";
 import { CheckCircle2, UserCheck, UserX, ChevronDown, X } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
+import { normalizeDepartmentName } from "@/lib/departments";
 
 const roles = [
   "member",
@@ -51,7 +52,8 @@ export default function UsersAdminPage() {
   const pendingUsers = users.filter(u => !u.approved);
   const approvedUsers = users.filter(u => u.approved);
   const roleRequests = approvedUsers.filter((u) => u.requestedRoles?.length);
-  const getDeptName = (id?: Id<"departments">) => departments.find(d => d._id === id)?.name || "Unassigned";
+  const getDeptName = (id?: Id<"departments">) =>
+    normalizeDepartmentName(departments.find(d => d._id === id));
 
   const departmentSelectClass = "min-w-[150px] rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11px] font-medium text-text-secondary focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand";
   const handleDepartmentChange = (userId: Id<"users">, departmentId: string) => {
@@ -89,7 +91,7 @@ export default function UsersAdminPage() {
                   </option>
                   {departments.map((department) => (
                     <option key={department._id} value={department._id}>
-                      {department.name}
+                      {normalizeDepartmentName(department)}
                     </option>
                   ))}
                 </select>
@@ -175,7 +177,7 @@ export default function UsersAdminPage() {
                       </option>
                       {departments.map((department) => (
                         <option key={department._id} value={department._id}>
-                          {department.name}
+                          {normalizeDepartmentName(department)}
                         </option>
                       ))}
                     </select>

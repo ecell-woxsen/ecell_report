@@ -10,6 +10,7 @@ import {
   canSubmitDepartmentReport,
   isLeadershipUser,
 } from "@/lib/permissions";
+import { normalizeDepartmentName } from "@/lib/departments";
 import {
   FileText,
   Plus,
@@ -59,11 +60,12 @@ export default function ReportsPage() {
     : departments?.filter((department) => department._id === convexUser.departmentId);
 
   const filtered = allReports.filter((r) => {
+    const departmentName = normalizeDepartmentName(r.departmentName);
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (deptFilter !== "all" && r.departmentId !== deptFilter) return false;
     if (
       search &&
-      !r.departmentName.toLowerCase().includes(search.toLowerCase()) &&
+      !departmentName.toLowerCase().includes(search.toLowerCase()) &&
       !r.weekLabel.toLowerCase().includes(search.toLowerCase())
     )
       return false;
@@ -128,7 +130,7 @@ export default function ReportsPage() {
             <option value="all">All Departments</option>
             {availableDepartments.map((d) => (
               <option key={d._id} value={d._id}>
-                {d.name}
+                {normalizeDepartmentName(d)}
               </option>
             ))}
           </select>
@@ -150,70 +152,74 @@ export default function ReportsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((report) => (
-            <Link
-              key={report._id}
-              href={
-                report.status === "draft" &&
-                canEditReportForDepartment(convexUser, report.departmentId)
-                  ? `/reports/${report._id}/edit`
-                  : `/reports/${report._id}`
-              }
-              className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-border-light hover:shadow-md transition-all group"
-            >
-              <div
-                className="w-2 h-12 rounded-full shrink-0"
-                style={{
-                  backgroundColor:
-                    departments?.find((d) => d._id === report.departmentId)
-                      ?.colorTag || "#1D9E75",
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-[13px] text-text-primary">
-                    {report.departmentName}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
-                      report.status === "submitted"
-                        ? "bg-success-bg text-success-text"
-                        : "bg-warn-light text-warn"
-                    }`}
-                  >
-                    {report.status === "submitted" ? (
-                      <CheckCircle2 size={10} />
-                    ) : (
-                      <Edit3 size={10} />
-                    )}
-                    {report.status === "submitted" ? "Submitted" : "Draft"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-text-tertiary">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={11} />
-                    {report.weekLabel}
-                  </span>
-                  {report.submittedAt && (
-                    <span>
-                      Submitted{" "}
-                      {new Date(report.submittedAt).toLocaleDateString()}
+          {filtered.map((report) => {
+            const departmentName = normalizeDepartmentName(report.departmentName);
+
+            return (
+              <Link
+                key={report._id}
+                href={
+                  report.status === "draft" &&
+                  canEditReportForDepartment(convexUser, report.departmentId)
+                    ? `/reports/${report._id}/edit`
+                    : `/reports/${report._id}`
+                }
+                className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-border-light hover:shadow-md transition-all group"
+              >
+                <div
+                  className="w-2 h-12 rounded-full shrink-0"
+                  style={{
+                    backgroundColor:
+                      departments?.find((d) => d._id === report.departmentId)
+                        ?.colorTag || "#1D9E75",
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-[13px] text-text-primary">
+                      {departmentName}
                     </span>
-                  )}
-                  {(report.attachments?.length ?? 0) > 0 && (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                        report.status === "submitted"
+                          ? "bg-success-bg text-success-text"
+                          : "bg-warn-light text-warn"
+                      }`}
+                    >
+                      {report.status === "submitted" ? (
+                        <CheckCircle2 size={10} />
+                      ) : (
+                        <Edit3 size={10} />
+                      )}
+                      {report.status === "submitted" ? "Submitted" : "Draft"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-text-tertiary">
                     <span className="flex items-center gap-1">
-                      <Paperclip size={11} />
-                      {report.attachments?.length}
+                      <Calendar size={11} />
+                      {report.weekLabel}
                     </span>
-                  )}
+                    {report.submittedAt && (
+                      <span>
+                        Submitted{" "}
+                        {new Date(report.submittedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                    {(report.attachments?.length ?? 0) > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Paperclip size={11} />
+                        {report.attachments?.length}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <ArrowRight
-                size={16}
-                className="text-text-tertiary group-hover:text-brand transition-colors shrink-0"
-              />
-            </Link>
-          ))}
+                <ArrowRight
+                  size={16}
+                  className="text-text-tertiary group-hover:text-brand transition-colors shrink-0"
+                />
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

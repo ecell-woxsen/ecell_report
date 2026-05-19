@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { ECellLogo } from "@/components/ecell-logo";
+import { normalizeDepartmentName } from "@/lib/departments";
 import {
   LayoutDashboard,
   FileText,
@@ -306,7 +307,7 @@ function DeptBadge({ departmentId }: { departmentId: string }) {
       }}
     >
       <Building2 size={11} />
-      {dept.name}
+      {normalizeDepartmentName(dept)}
     </div>
   );
 }

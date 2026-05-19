@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState } from "react";
 import { AlertCircle, Building2, CheckCircle2, GraduationCap, Loader2, Mail, Phone, Shield } from "lucide-react";
+import { normalizeDepartmentName } from "@/lib/departments";
 
 const roles = [
   "member",
@@ -125,7 +126,7 @@ export default function SettingsPage() {
           { icon: Mail, label: "Email", value: convexUser.email },
           { icon: Phone, label: "Phone", value: convexUser.phone || "Not set" },
           { icon: GraduationCap, label: "Year of Study", value: convexUser.yearOfStudy || "Not set" },
-          { icon: Building2, label: "Department", value: dept?.name || "Unassigned" },
+          { icon: Building2, label: "Department", value: normalizeDepartmentName(dept) },
           { icon: Shield, label: "Roles", value: formatRoles(convexUser.roles) },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-3 py-3">

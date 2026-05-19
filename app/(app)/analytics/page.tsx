@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { AlertCircle, BarChart3, TrendingUp, Users, Calendar } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { isLeadershipUser } from "@/lib/permissions";
+import { normalizeDepartmentName } from "@/lib/departments";
 
 export default function AnalyticsPage() {
   const { user } = useUser();
@@ -44,7 +45,7 @@ export default function AnalyticsPage() {
   // Submission stats per department
   const deptSubmissions = departments.map(d => {
     const deptReports = submittedReports.filter(r => r.departmentId === d._id);
-    return { name: d.name, reports: deptReports.length, color: d.colorTag };
+    return { name: normalizeDepartmentName(d), reports: deptReports.length, color: d.colorTag };
   });
 
   // Status distribution
@@ -171,7 +172,7 @@ export default function AnalyticsPage() {
               </span>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[13px] font-medium text-text-primary">{d.name}</span>
+                  <span className="text-[13px] font-medium text-text-primary">{normalizeDepartmentName(d)}</span>
                   <span className="text-[11px] text-text-tertiary font-medium">{d.reports} reports</span>
                 </div>
                 <div className="h-2 bg-bg-tertiary rounded-full overflow-hidden">

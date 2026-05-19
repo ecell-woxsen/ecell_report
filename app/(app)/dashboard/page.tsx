@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { useEffect } from "react";
 import Link from "next/link";
 import { canEditReportForDepartment, canSubmitDepartmentReport, isLeadershipUser } from "@/lib/permissions";
+import { normalizeDepartmentName } from "@/lib/departments";
 import {
   FileText, CheckCircle2, AlertTriangle, ArrowRight,
   Plus, Eye, Edit3, Building2, BarChart3, Megaphone,
@@ -252,7 +253,9 @@ function DeptStatusCard({ item }: { item: { department: { _id: string; name: str
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.department.colorTag }} />
-          <span className="font-semibold text-[13px] text-text-primary">{item.department.name}</span>
+          <span className="font-semibold text-[13px] text-text-primary">
+            {normalizeDepartmentName(item.department)}
+          </span>
         </div>
         <StatusBadge status={item.status} />
       </div>

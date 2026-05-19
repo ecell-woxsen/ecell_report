@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { Building2, ChevronRight, Loader2 } from "lucide-react";
 import { ECellLogo } from "@/components/ecell-logo";
+import { normalizeDepartmentName } from "@/lib/departments";
 
 export default function OnboardingPage() {
   const { user } = useUser();
@@ -185,7 +186,7 @@ export default function OnboardingPage() {
                   }`}
                 >
                   <Building2 size={14} />
-                  {dept.name}
+                  {normalizeDepartmentName(dept)}
                 </button>
               ))}
             </div>

@@ -3,7 +3,11 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState } from "react";
-import { Plus, Building2, Archive, Edit3, X, Loader2 } from "lucide-react";
+import { Plus, Archive, Loader2 } from "lucide-react";
+import {
+  normalizeDepartmentDescription,
+  normalizeDepartmentName,
+} from "@/lib/departments";
 
 export default function DepartmentsAdminPage() {
   const departments = useQuery(api.departments.listAll);
@@ -58,19 +62,24 @@ export default function DepartmentsAdminPage() {
       )}
 
       <div className="space-y-3">
-        {departments.map(dept => (
-          <div key={dept._id} className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-border-light shadow-sm">
-            <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: dept.colorTag }} />
-            <div className="flex-1 min-w-0">
-              <h3 className="text-[13px] font-semibold text-text-primary">{dept.name}</h3>
-              {dept.description && <p className="text-[11px] text-text-tertiary mt-0.5">{dept.description}</p>}
+        {departments.map(dept => {
+          const departmentName = normalizeDepartmentName(dept);
+          const departmentDescription = normalizeDepartmentDescription(dept);
+
+          return (
+            <div key={dept._id} className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-border-light shadow-sm">
+              <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: dept.colorTag }} />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[13px] font-semibold text-text-primary">{departmentName}</h3>
+                {departmentDescription && <p className="text-[11px] text-text-tertiary mt-0.5">{departmentDescription}</p>}
+              </div>
+              <span className="text-[10px] text-text-tertiary px-2.5 py-1 rounded-lg bg-bg-tertiary font-medium">{dept.slug}</span>
+              <button onClick={() => { if (confirm(`Archive "${departmentName}"?`)) archiveDept({ departmentId: dept._id }); }} className="p-2 rounded-lg hover:bg-danger-light text-text-tertiary hover:text-danger transition-colors" title="Archive">
+                <Archive size={14} />
+              </button>
             </div>
-            <span className="text-[10px] text-text-tertiary px-2.5 py-1 rounded-lg bg-bg-tertiary font-medium">{dept.slug}</span>
-            <button onClick={() => { if (confirm(`Archive "${dept.name}"?`)) archiveDept({ departmentId: dept._id }); }} className="p-2 rounded-lg hover:bg-danger-light text-text-tertiary hover:text-danger transition-colors" title="Archive">
-              <Archive size={14} />
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
