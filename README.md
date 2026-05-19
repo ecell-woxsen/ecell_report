@@ -8,12 +8,12 @@ The app replaces scattered WhatsApp updates, stale spreadsheets, and memory-base
 
 E-Cell Reports is built around the way a student E-Cell actually works:
 
-- Department heads and team leads create one weekly report for their department.
-- Reports use department-specific templates with metrics, task tracking, participation, challenges, and next-week plans.
-- Drafts autosave while the department report owner works.
-- Submitted reports become read-only records.
-- Core team, president, vice president, advisor, and admin users can review organization-wide progress.
-- Leadership can comment on report sections and export reports for review or archival.
+- Department heads and team leads create one weekly report for their assigned department.
+- Core team, president, vice president, advisor, and admin users can create or edit reports across departments when needed.
+- Reports use department-specific templates with participation, task tracking, work completed, metrics, challenges, support needs, and next-week plans.
+- Drafts autosave while report owners work, and supporting files can be attached with optional notes.
+- Submitted reports become official weekly records, but authorized report managers can still make corrections after submission.
+- Leadership can review organization-wide progress, leave section-level comments, and export reports for review or archival.
 
 ## Current Feature Map
 
@@ -23,15 +23,16 @@ E-Cell Reports is built around the way a student E-Cell actually works:
 | Authentication | Clerk sign-in/sign-up with protected app routes |
 | Onboarding | Captures name, phone, year of study, department, and requested role |
 | Approval flow | New users remain pending until approved by an admin, president, vice president, or advisor |
-| Dashboard | Department dashboard for members/heads and weekly status dashboard for leadership |
-| Reports | Searchable report list with status and department filters |
-| Report creation | `/reports/new` creates or reuses the current week's unfinished draft |
-| Report editor | Template-driven editor with autosave, section progress, and submit confirmation |
-| Report viewer | Read-only report view with comments, collapsible sections, Excel export, and PDF export |
+| Dashboard | Department dashboard for members/heads, weekly status dashboard for leadership, and active announcements |
+| Reports | Searchable report list with status filters, department filters, draft/submitted routing, and attachment counts |
+| Report creation | `/reports/new` creates or reuses the current week's unfinished draft; leadership can pick any active department |
+| Report editor | Template-driven editor with autosave, section progress, attachments, post-submit saving, and submit confirmation |
+| Report viewer | Report view with comments, attachments, collapsible sections, Excel export, and PDF export |
 | Analytics | Leadership-only charts for reports, departments, status distribution, task status, and department ranking |
 | Team directory | Searchable directory of approved users and department assignments |
-| Notifications | Report submission, comment, approval, and pending-user notifications |
-| Admin | Department management, user approvals, role changes, department assignment, and announcements |
+| Settings | Profile details, current roles, role-change requests, and pending request cancellation |
+| Notifications | Report submission, comment, approval, pending-user, and role-request notifications |
+| Admin | Department creation/archive, user approvals, role requests, role changes, department assignment, deactivation, and announcements |
 
 ## Roles
 
@@ -40,15 +41,17 @@ Roles are stored on Convex users and drive the navigation, dashboards, report ac
 | Role | Intended user | Main access |
 | --- | --- | --- |
 | `member` | Regular department member | Dashboard, submitted department reports, team, notifications, settings |
-| `department_head` | Department lead | Department report drafts, submission flow, report history |
+| `department_head` | Department lead | Create, edit, submit, and view reports for their assigned department |
 | `team_lead` | Team lead | Same department report access as department heads |
-| `core_team` | E-Cell core leadership | Leadership dashboard, analytics, all reports, section comments |
-| `president` | E-Cell president | Leadership access plus admin navigation |
+| `core_team` | E-Cell core leadership | Leadership dashboard, analytics, all reports, cross-department report editing, and section comments |
+| `president` | E-Cell president | Leadership access plus admin navigation and approval tools |
 | `vice_president` | E-Cell vice president | Same access as president |
 | `advisor` | E-Cell advisor | Same access as president |
-| `admin` | Operations or technical admin | Admin navigation for users, roles, departments, and announcements |
+| `admin` | Operations or technical admin | Admin navigation for users, roles, departments, approvals, and announcements |
 
 Approval is separate from role. A signed-in but unapproved user sees a pending approval screen until an admin, president, vice president, or advisor approves the account.
+
+Users can request role changes from Settings. Promotions are stored as pending requests until an admin, president, vice president, or advisor approves or rejects them; moving to a lower-access role updates immediately.
 
 ## Report Workflow
 
@@ -59,22 +62,22 @@ Sign in
 Onboarding and approval
   |
   v
-Department head or team lead opens New Report
+Department head, team lead, or leadership user opens New Report
   |
   v
-Current-week draft is created or reused
+Assigned department or selected department draft is created or reused
   |
   v
-Editor autosaves section data
+Editor autosaves section data and attachments
   |
   v
-Department head or team lead submits
+Report manager submits
   |
   v
-Submitted report becomes read-only
+Submitted report becomes the official weekly record
   |
   v
-Leadership reviews, comments, analyzes, and exports
+Leadership reviews, comments, analyzes, exports, and authorized managers can make corrections
 ```
 
 Important implementation details:
@@ -83,8 +86,10 @@ Important implementation details:
 - `New Report` reuses an unfinished draft for the same department and week.
 - `New Report` does not route a user to an already submitted report.
 - Department members can only see submitted reports for their department.
-- Department heads and team leads can edit drafts only for their own department.
-- Leadership users can view reports across departments and leave section-level comments.
+- Department heads and team leads can manage reports only for their own department.
+- Leadership users can view and manage reports across departments and leave section-level comments.
+- Attachments are stored in Convex storage and are limited to 3 MB after browser-side compression.
+- Excel and PDF exports include report data, leadership feedback, and attachment metadata.
 
 ## Default Departments
 
@@ -100,7 +105,7 @@ The app seeds these departments and refreshes old default department names:
 | Design | `design` | Visual design and creative assets |
 | Documentation | `documentation` | Documentation, records, and public-facing updates |
 
-Default report templates are generated per department and include shared sections plus department-specific metrics, work areas, budget tables, campaign/event tables, or lead tracking where relevant.
+Default report templates are generated per department and include shared sections plus department-specific metrics, work areas, performance review, budget tables, campaign/event tables, or lead tracking where relevant.
 
 ## Tech Stack
 
@@ -109,9 +114,10 @@ Default report templates are generated per department and include shared section
 | Framework | Next.js 16 App Router |
 | UI | React 19, Tailwind CSS 4, Lucide icons |
 | Auth | Clerk |
-| Backend | Convex queries, mutations, and HTTP actions |
+| Backend | Convex queries, mutations, HTTP actions, and storage |
 | Charts | Recharts |
 | Exports | `xlsx-js-style`, `xlsx`, `jspdf`, `jspdf-autotable` |
+| Attachments | Browser image/gzip compression plus Convex file storage |
 | Runtime/package manager | Bun |
 | Language | TypeScript |
 
@@ -131,15 +137,15 @@ app/
     dashboard/page.tsx             Department and leadership dashboards
     reports/page.tsx               Report list, filters, and entry points
     reports/new/page.tsx           Current-week draft creation
-    reports/[id]/page.tsx          Report viewer, comments, Excel/PDF exports
-    reports/[id]/edit/page.tsx     Autosaving report editor
+    reports/[id]/page.tsx          Report viewer, comments, attachments, Excel/PDF exports
+    reports/[id]/edit/page.tsx     Autosaving report editor and attachment upload
     analytics/page.tsx             Leadership analytics
     notifications/page.tsx         User notifications
     team/page.tsx                  Team directory
     settings/page.tsx              Profile display and role requests
     admin/
       page.tsx                     Department management
-      users/page.tsx               User approvals, roles, and department assignment
+      users/page.tsx               User approvals, role requests, roles, deactivation, and department assignment
       announcements/page.tsx       Announcement publishing
 
 components/
@@ -153,12 +159,14 @@ convex/
   users.ts                         User sync, approvals, roles, role requests
   departments.ts                   Department CRUD and seed data
   templates.ts                     Report template generation
-  reports.ts                       Drafts, autosave, submit, history, metrics
+  reports.ts                       Drafts, autosave, submit, attachments, history, metrics
   comments.ts                      Section feedback and replies
   notifications.ts                 Notification listing and read state
   announcements.ts                 Announcement publishing and listing
 
 lib/
+  attachments.ts                   Client-side attachment formatting and compression helpers
+  departments.ts                   Department name/description normalization helpers
   permissions.ts                   Client-side role helpers
 
 proxy.ts                           Next.js 16 Proxy route protection with Clerk
@@ -168,11 +176,11 @@ proxy.ts                           Next.js 16 Proxy route protection with Clerk
 
 | Table | Purpose |
 | --- | --- |
-| `users` | Clerk-linked profile, department, role, approval, and role-request data |
+| `users` | Clerk-linked profile, department, roles, approval state, requested roles, and role-request timestamps |
 | `departments` | Department metadata, colors, active state, and template links |
 | `templates` | Ordered section definitions for each department report |
-| `reports` | Weekly draft/submitted report records and section payloads |
-| `comments` | Section-level leadership feedback and replies |
+| `reports` | Weekly draft/submitted report records, section payloads, and attachment metadata |
+| `comments` | Section-level leadership feedback, tags, replies, and resolved state |
 | `notifications` | Per-user report, comment, approval, and admin notifications |
 | `announcements` | Admin-published dashboard announcements |
 
@@ -296,8 +304,9 @@ This app uses Next.js 16 `proxy.ts`, not the older `middleware.ts` convention. T
 
 Backend permission checks currently protect the report and comment workflow:
 
-- Report managers must be approved department heads or team leads for their own department.
-- Leadership users can view all reports and comment on report sections.
+- Report managers must be approved department heads or team leads for their own department, or approved leadership users managing reports across departments.
+- Leadership users can view all reports, create/edit reports across departments, access analytics, and comment on report sections.
+- Admin-style users (`admin`, `president`, `vice_president`, and `advisor`) can access the admin navigation for user approvals, role requests, departments, and announcements.
 - Non-leadership members only see submitted reports from their own department.
 
 Before using this outside a trusted internal environment, harden the remaining admin-style Convex mutations with explicit backend role checks and verify Clerk webhook signatures.
@@ -308,6 +317,7 @@ Before using this outside a trusted internal environment, harden the remaining a
 - Styling is centralized in `app/globals.css` with brand colors, status colors, radius/shadow scales, animations, skeletons, and shared card/glass utilities.
 - The app uses the App Router only. There is no `pages/` directory.
 - The report viewer creates Excel files in the browser with `xlsx-js-style` and PDFs with `jspdf` plus `jspdf-autotable`.
+- The report editor compresses oversized image attachments to WebP or attempts gzip compression before upload; files must still be 3 MB or smaller once stored.
 - There is no automated test suite in the repo yet.
 
 ## Deployment Checklist
@@ -322,7 +332,7 @@ Before production use:
 - Bootstrap the first admin, president, vice president, or advisor account.
 - Run `bun run lint`.
 - Run `bun run build`.
-- Test sign-up, onboarding, pending approval, admin approval, report creation, autosave, submit, comments, exports, notifications, role requests, and analytics.
+- Test sign-up, onboarding, pending approval, admin approval, role requests, department assignment, report creation, autosave, attachment upload/download/removal, submit, post-submit editing, comments, exports, notifications, announcements, and analytics.
 - Add backend role checks to admin/department/announcement mutations before broader rollout.
 - Add webhook signature verification before trusting webhook traffic in production.
 
@@ -337,4 +347,6 @@ Every feature should make weekly accountability easier:
 
 ## License
 
-Private internal project for Woxsen University E-Cell.
+Copyright (c) 2026 Shaik Imaduddin. All rights reserved.
+
+Private internal project for Woxsen University E-Cell. No part of this project may be copied, modified, distributed, or used without permission from Shaik Imaduddin.
