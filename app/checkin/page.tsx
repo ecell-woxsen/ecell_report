@@ -308,8 +308,8 @@ function UnsignedLanding({ onVisitor }: { onVisitor: () => void }) {
 
 // ── Member auto-check-in ───────────────────────────────────────────────────
 
-function MemberCheckIn({ userName }: { userName: string }) {
-  const todayStatus = useQuery(api.attendance.getTodayStatus);
+function MemberCheckIn({ userName, clerkId }: { userName: string; clerkId: string }) {
+  const todayStatus = useQuery(api.attendance.getTodayStatus, { clerkId });
   const checkIn = useMutation(api.attendance.checkIn);
   const [result, setResult] = useState<{
     status: "checked_in" | "already_checked_in";
@@ -317,9 +317,9 @@ function MemberCheckIn({ userName }: { userName: string }) {
   } | null>(null);
 
   const doCheckIn = useCallback(async () => {
-    const res = await checkIn({});
+    const res = await checkIn({ clerkId });
     setResult(res);
-  }, [checkIn]);
+  }, [checkIn, clerkId]);
 
   // Once we know today's status, act:
   // - If already checked in → show from DB (no mutation)
@@ -399,7 +399,7 @@ export default function CheckinPage() {
 
     // Approved member
     if (convexUser?.approved) {
-      return <MemberCheckIn userName={convexUser.name || user.fullName || "Member"} />;
+      return <MemberCheckIn userName={convexUser.name || user.fullName || "Member"} clerkId={user.id} />;
     }
   }
 
