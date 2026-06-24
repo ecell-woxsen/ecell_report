@@ -83,8 +83,8 @@ export async function requireReportManager(
   return user;
 }
 
-export async function requireLeadershipUser(ctx: Ctx) {
-  const user = await requireApprovedUser(ctx);
+export async function requireLeadershipUser(ctx: Ctx, fallbackClerkId?: string) {
+  const user = await requireApprovedUser(ctx, fallbackClerkId);
   if (!isLeadershipUser(user)) {
     throw new Error("Only leadership users can perform this action");
   }
@@ -108,8 +108,8 @@ export function isVisitorViewerUser(user: Pick<User, "approved" | "roles"> | nul
   );
 }
 
-export async function requireVisitorViewer(ctx: Ctx) {
-  const user = await requireApprovedUser(ctx);
+export async function requireVisitorViewer(ctx: Ctx, fallbackClerkId?: string) {
+  const user = await requireApprovedUser(ctx, fallbackClerkId);
   if (!isVisitorViewerUser(user)) {
     throw new Error(
       "Only department heads and leadership can view the visitor logbook"

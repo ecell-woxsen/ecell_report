@@ -70,9 +70,9 @@ type DailyEntry = {
   dateKey: string;
 };
 
-function DailyLogTab() {
+function DailyLogTab({ clerkId }: { clerkId: string }) {
   const [dateKey, setDateKey] = useState(todayIST());
-  const entries = useQuery(api.attendance.getDailyLog, { dateKey });
+  const entries = useQuery(api.attendance.getDailyLog, { dateKey, clerkId });
 
   // Group member entries by department
   const membersByDept = useMemo(() => {
@@ -220,7 +220,7 @@ function DailyLogTab() {
 
 // ── Summary Tab ────────────────────────────────────────────────────────────
 
-function SummaryTab() {
+function SummaryTab({ clerkId }: { clerkId: string }) {
   const [days, setDays] = useState(30);
   const startDateKey = nDaysAgo(days - 1);
   const endDateKey = todayIST();
@@ -228,6 +228,7 @@ function SummaryTab() {
   const summary = useQuery(api.attendance.getDepartmentAttendanceSummary, {
     startDateKey,
     endDateKey,
+    clerkId,
   });
 
   const deptOptions = [
@@ -327,13 +328,14 @@ function SummaryTab() {
 
 // ── Visitors Tab ───────────────────────────────────────────────────────────
 
-function VisitorsTab() {
+function VisitorsTab({ clerkId }: { clerkId: string }) {
   const [startDateKey, setStartDateKey] = useState(nDaysAgo(29));
   const [endDateKey, setEndDateKey] = useState(todayIST());
 
   const visitors = useQuery(api.attendance.getVisitorsByDateRange, {
     startDateKey,
     endDateKey,
+    clerkId,
   });
 
   const handleExport = () => {
@@ -467,10 +469,23 @@ export default function AttendanceDashboardPage() {
   );
   const [activeTab, setActiveTab] = useState<Tab>("daily");
 
-  const isLeadership = convexUser?.roles?.some((r) =>
+  if (convexUser === undefined) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <div className="skeleton h-8 w-48 mb-2" />
+          <div className="skeleton h-4 w-32" />
+        </div>
+        <div className="skeleton h-48 rounded-2xl" />
+      </div>
+    );
+  }
+
+  const isApproved = convexUser?.approved === true;
+  const isLeadership = isApproved && convexUser?.roles?.some((r) =>
     leadershipRoles.has(r as Parameters<typeof leadershipRoles.has>[0])
   );
-  const canViewVisitors = convexUser?.roles?.some((r) =>
+  const canViewVisitors = isApproved && convexUser?.roles?.some((r) =>
     visitorViewerRoles.has(r as Parameters<typeof visitorViewerRoles.has>[0])
   );
 
@@ -543,9 +558,9 @@ export default function AttendanceDashboardPage() {
         </div>
       )}
 
-      {effectiveTab === "daily" && <DailyLogTab />}
-      {effectiveTab === "summary" && <SummaryTab />}
-      {effectiveTab === "visitors" && <VisitorsTab />}
+      {effectiveTab === "daily" && <DailyLogTab clerkId={user!.id} />}
+      {effectiveTab === "summary" && <SummaryTab clerkId={user!.id} />}
+      {effectiveTab === "visitors" && <VisitorsTab clerkId={user!.id} />}
     </div>
   );
 }

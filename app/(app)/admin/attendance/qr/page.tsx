@@ -35,7 +35,19 @@ export default function AttendanceQRPage() {
     setDraftUrl(DEFAULT_BASE_URL);
   }, []);
 
-  const isLeadership = convexUser?.roles?.some((r) =>
+  if (convexUser === undefined) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">
+          Office QR Code
+        </h1>
+        <div className="skeleton h-64 rounded-2xl" />
+      </div>
+    );
+  }
+
+  const isApproved = convexUser?.approved === true;
+  const isLeadership = isApproved && convexUser?.roles?.some((r) =>
     ["core_team", "president", "vice_president", "advisor", "admin"].includes(r)
   );
 

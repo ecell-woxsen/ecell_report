@@ -151,9 +151,12 @@ export const getMyAttendanceHistory = query({
  * Each row is tagged with `type` so the UI can badge members vs visitors.
  */
 export const getDailyLog = query({
-  args: { dateKey: v.string() },
+  args: {
+    dateKey: v.string(),
+    clerkId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    await requireLeadershipUser(ctx);
+    await requireLeadershipUser(ctx, args.clerkId);
 
     const entries = await ctx.db
       .query("attendance")
@@ -198,9 +201,10 @@ export const getDepartmentAttendanceSummary = query({
   args: {
     startDateKey: v.string(),
     endDateKey: v.string(),
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireLeadershipUser(ctx);
+    await requireLeadershipUser(ctx, args.clerkId);
 
     const entries = await ctx.db
       .query("attendance")
@@ -255,9 +259,10 @@ export const getVisitorsByDateRange = query({
   args: {
     startDateKey: v.string(),
     endDateKey: v.string(),
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireVisitorViewer(ctx);
+    await requireVisitorViewer(ctx, args.clerkId);
 
     return await ctx.db
       .query("attendance")
