@@ -39,9 +39,11 @@ function formatTime(epochMs: number): string {
  * Never throws for the duplicate case — the client renders a friendly message.
  */
 export const checkIn = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireApprovedUser(ctx);
+  args: {
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireApprovedUser(ctx, args.clerkId);
     const dateKey = todayIST();
 
     // Check for existing entry today
@@ -112,9 +114,11 @@ export const visitorCheckIn = mutation({
  * Returns the current signed-in member's logbook entry for today, or null.
  */
 export const getTodayStatus = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
+  args: {
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx, args.clerkId);
     if (!user?.approved) return null;
 
     const dateKey = todayIST();
