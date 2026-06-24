@@ -174,4 +174,34 @@ export default defineSchema({
     createdAt: v.number(),
     expiresAt: v.optional(v.number()),
   }),
+
+  // ── OFFICE LOGBOOK ─────────────────────────────────────────────────
+  // Records who was in the office and when they entered.
+  // `type` discriminates between registered members and walk-in visitors.
+  // `checkedOutAt` is reserved for future exit tracking — not written to yet.
+  attendance: defineTable({
+    type: v.union(v.literal("member"), v.literal("visitor")),
+
+    // Member-only fields (set when type === "member")
+    clerkId: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    departmentId: v.optional(v.id("departments")), // denormalized at entry time
+
+    // Visitor-only fields (set when type === "visitor")
+    visitorName: v.optional(v.string()),
+    visitorCourse: v.optional(v.string()),
+
+    // Common fields
+    dateKey: v.string(),        // ISO date string "YYYY-MM-DD" (IST local date)
+    checkedInAt: v.number(),    // epoch ms — when they entered the office
+    checkedOutAt: v.optional(v.number()), // epoch ms — reserved for future exit tracking
+    method: v.literal("qr_scan"), // leave room for future methods (manual override, etc.)
+    note: v.optional(v.string()),  // optional admin-added context
+  })
+    // One check-in per member per day; also used for member history
+    .index("by_clerk_date", ["clerkId", "dateKey"])
+    // Daily logbook view (members + visitors together)
+    .index("by_date", ["dateKey"])
+    // Per-department analytics
+    .index("by_department_date", ["departmentId", "dateKey"]),
 });
