@@ -96,6 +96,40 @@ function SuccessState({
   );
 }
 
+// ── Too Soon State ─────────────────────────────────────────────────────────
+
+function TooSoonState({
+  firstName,
+  lastCheckedInAt,
+  nextAvailableAt,
+}: {
+  firstName: string;
+  lastCheckedInAt: number;
+  nextAvailableAt: number;
+}) {
+  const minsLeft = Math.ceil((nextAvailableAt - Date.now()) / 60000);
+  return (
+    <CheckinCard>
+      <LogoHeader />
+      <div className="bg-warn-light border border-warn/20 rounded-2xl p-8 text-center space-y-3 animate-scale-in">
+        <div className="text-5xl">⏰</div>
+        <h2 className="text-xl font-bold text-text-primary tracking-tight">
+          Already logged, {firstName}!
+        </h2>
+        <p className="text-text-secondary text-[14px] leading-relaxed">
+          You checked in at{" "}
+          <span className="font-semibold">{formatTime(lastCheckedInAt)}</span>.
+        </p>
+        <p className="text-text-tertiary text-[13px]">
+          Next entry available at{" "}
+          <span className="font-medium text-warn">{formatTime(nextAvailableAt)}</span>
+          {minsLeft > 0 && ` (in ${minsLeft} min)`}.
+        </p>
+      </div>
+    </CheckinCard>
+  );
+}
+
 // ── Pending State ──────────────────────────────────────────────────────────
 
 function PendingState({ name }: { name: string }) {
@@ -308,32 +342,55 @@ function UnsignedLanding({ onVisitor }: { onVisitor: () => void }) {
 
 // ── Member auto-check-in ───────────────────────────────────────────────────
 
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+type CheckInResult =
+  | { status: "checked_in"; checkedInAt: number }
+  | { status: "too_soon"; lastCheckedInAt: number; nextAvailableAt: number };
+
 function MemberCheckIn({ userName, clerkId }: { userName: string; clerkId: string }) {
   const todayStatus = useQuery(api.attendance.getTodayStatus, { clerkId });
   const checkIn = useMutation(api.attendance.checkIn);
-  const [result, setResult] = useState<{
-    status: "checked_in" | "already_checked_in";
-    checkedInAt: number;
-  } | null>(null);
+  const [result, setResult] = useState<CheckInResult | null>(null);
 
   const doCheckIn = useCallback(async () => {
     const res = await checkIn({ clerkId });
-    setResult(res);
+    if (res.status === "checked_in") {
+      setResult({ status: "checked_in", checkedInAt: res.checkedInAt });
+    } else {
+      // "too_soon" came back from the server (race condition safety net)
+      setResult({
+        status: "too_soon",
+        lastCheckedInAt: res.lastCheckedInAt,
+        nextAvailableAt: res.nextAvailableAt,
+      });
+    }
   }, [checkIn, clerkId]);
 
-  // Once we know today's status, act:
-  // - If already checked in → show from DB (no mutation)
-  // - If not → fire mutation
   useEffect(() => {
     if (todayStatus === undefined) return; // still loading
-    if (todayStatus !== null) {
-      // Already in DB — show cached state
-      setResult({ status: "already_checked_in", checkedInAt: todayStatus.checkedInAt });
-    } else {
-      doCheckIn();
-    }
-  }, [todayStatus, doCheckIn]);
+    if (result !== null) return; // already acted — don't re-run
 
+    if (todayStatus === null) {
+      // No entry today at all → check in immediately
+      doCheckIn();
+    } else {
+      const elapsed = Date.now() - todayStatus.checkedInAt;
+      if (elapsed >= ONE_HOUR_MS) {
+        // Last entry was more than 1 hour ago → allow a new one
+        doCheckIn();
+      } else {
+        // Within the 1-hour window → show "come back later" (no mutation)
+        setResult({
+          status: "too_soon",
+          lastCheckedInAt: todayStatus.checkedInAt,
+          nextAvailableAt: todayStatus.checkedInAt + ONE_HOUR_MS,
+        });
+      }
+    }
+  }, [todayStatus, doCheckIn, result]);
+
+  // Loading spinner
   if (!result) {
     return (
       <CheckinCard>
@@ -346,13 +403,12 @@ function MemberCheckIn({ userName, clerkId }: { userName: string; clerkId: strin
     );
   }
 
-  if (result.status === "already_checked_in") {
+  if (result.status === "too_soon") {
     return (
-      <SuccessState
-        emoji="✅"
-        headline="Already logged!"
-        subline={`You already logged your visit today, ${userName.split(" ")[0]}.`}
-        time={result.checkedInAt}
+      <TooSoonState
+        firstName={userName.split(" ")[0]}
+        lastCheckedInAt={result.lastCheckedInAt}
+        nextAvailableAt={result.nextAvailableAt}
       />
     );
   }
