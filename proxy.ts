@@ -10,9 +10,13 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isAuthRoute(req)) {
-    const { userId } = await auth();
+  const { userId } = await auth();
 
+  if (userId && req.nextUrl.pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  if (isAuthRoute(req)) {
     if (userId) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
