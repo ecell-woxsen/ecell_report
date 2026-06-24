@@ -107,7 +107,7 @@ export default function AnalyticsPage() {
         <div className="p-6 rounded-2xl bg-white border border-border-light shadow-sm">
           <h3 className="text-[13px] font-semibold text-text-primary mb-4 tracking-tight">Reports by Department</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={deptSubmissions} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E8EB" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
           <h3 className="text-[13px] font-semibold text-text-primary mb-4 tracking-tight">Report Status Distribution</h3>
           <div className="h-64 flex items-center justify-center">
             {statusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
                     {statusData.map((d, i) => <Cell key={i} fill={d.color} />)}
@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
         <h3 className="text-sm font-semibold text-text-primary mb-4">Task Status Overview</h3>
         <div className="h-64">
           {taskData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie data={taskData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
                   {taskData.map((d, i) => <Cell key={i} fill={d.color} />)}
