@@ -83,10 +83,37 @@ export async function requireReportManager(
   return user;
 }
 
-export async function requireLeadershipUser(ctx: Ctx) {
-  const user = await requireApprovedUser(ctx);
+export async function requireLeadershipUser(ctx: Ctx, fallbackClerkId?: string) {
+  const user = await requireApprovedUser(ctx, fallbackClerkId);
   if (!isLeadershipUser(user)) {
     throw new Error("Only leadership users can perform this action");
+  }
+  return user;
+}
+
+// Visitor logbook is readable by department_head as well as full leadership.
+// team_lead is intentionally excluded here.
+const visitorViewerRoles = new Set<User["roles"][number]>([
+  "department_head",
+  "core_team",
+  "president",
+  "vice_president",
+  "advisor",
+  "admin",
+]);
+
+export function isVisitorViewerUser(user: Pick<User, "approved" | "roles"> | null) {
+  return Boolean(
+    user?.approved && user.roles.some((role) => visitorViewerRoles.has(role))
+  );
+}
+
+export async function requireVisitorViewer(ctx: Ctx, fallbackClerkId?: string) {
+  const user = await requireApprovedUser(ctx, fallbackClerkId);
+  if (!isVisitorViewerUser(user)) {
+    throw new Error(
+      "Only department heads and leadership can view the visitor logbook"
+    );
   }
   return user;
 }
