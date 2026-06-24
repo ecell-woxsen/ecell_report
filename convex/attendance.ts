@@ -35,9 +35,15 @@ function formatTime(epochMs: number): string {
 
 /**
  * Member check-in via QR scan.
- * Returns { status: "checked_in" | "already_checked_in", checkedInAt }.
- * Never throws for the duplicate case — the client renders a friendly message.
+ * Multiple entries per day are allowed, but with a minimum 1-hour gap.
+ * Returns:
+ *   { status: "checked_in", checkedInAt, entryId }  — new entry created
+ *   { status: "too_soon", lastCheckedInAt, nextAvailableAt } — gap not met yet
+ *
+ * The schema keeps checkedOutAt for future exit-time tracking.
  */
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
 export const checkIn = mutation({
   args: {
     clerkId: v.optional(v.string()),
@@ -46,20 +52,24 @@ export const checkIn = mutation({
     const user = await requireApprovedUser(ctx, args.clerkId);
     const dateKey = todayIST();
 
-    // Check for existing entry today
-    const existing = await ctx.db
+    // Find the most recent entry for this user today (server-side enforcement)
+    const lastEntry = await ctx.db
       .query("attendance")
       .withIndex("by_clerk_date", (q) =>
         q.eq("clerkId", user.clerkId).eq("dateKey", dateKey)
       )
+      .order("desc")
       .first();
 
-    if (existing) {
-      return {
-        status: "already_checked_in" as const,
-        checkedInAt: existing.checkedInAt,
-        entryId: existing._id,
-      };
+    if (lastEntry) {
+      const elapsed = Date.now() - lastEntry.checkedInAt;
+      if (elapsed < ONE_HOUR_MS) {
+        return {
+          status: "too_soon" as const,
+          lastCheckedInAt: lastEntry.checkedInAt,
+          nextAvailableAt: lastEntry.checkedInAt + ONE_HOUR_MS,
+        };
+      }
     }
 
     const now = Date.now();
@@ -70,6 +80,7 @@ export const checkIn = mutation({
       departmentId: user.departmentId,
       dateKey,
       checkedInAt: now,
+      // checkedOutAt is intentionally omitted here — reserved for future exit-time tracking
       method: "qr_scan",
     });
 
@@ -111,7 +122,10 @@ export const visitorCheckIn = mutation({
 });
 
 /**
- * Returns the current signed-in member's logbook entry for today, or null.
+ * Returns the most recent logbook entry for today for the current member,
+ * or null if they haven't checked in yet.
+ * Used by the /checkin page to determine whether a new entry is allowed
+ * (i.e., whether the 1-hour gap has elapsed).
  */
 export const getTodayStatus = query({
   args: {
@@ -122,11 +136,13 @@ export const getTodayStatus = query({
     if (!user?.approved) return null;
 
     const dateKey = todayIST();
+    // .order("desc") so .first() gives the most recent entry, not the earliest
     return await ctx.db
       .query("attendance")
       .withIndex("by_clerk_date", (q) =>
         q.eq("clerkId", user.clerkId).eq("dateKey", dateKey)
       )
+      .order("desc")
       .first();
   },
 });
