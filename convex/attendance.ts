@@ -272,10 +272,11 @@ export const getDepartmentAttendanceSummary = query({
 });
 
 /**
- * All visitor logbook entries in a date range, sorted newest-first.
- * Accessible to department_head + leadership (wider than most admin queries).
+ * All logbook entries (members + visitors) in a date range, sorted newest-first.
+ * Member entries are enriched with name and department info.
+ * Accessible to department_head + leadership.
  */
-export const getVisitorsByDateRange = query({
+export const getEntriesByDateRange = query({
   args: {
     startDateKey: v.string(),
     endDateKey: v.string(),
@@ -284,13 +285,36 @@ export const getVisitorsByDateRange = query({
   handler: async (ctx, args) => {
     await requireVisitorViewer(ctx, args.clerkId);
 
-    return await ctx.db
+    const entries = await ctx.db
       .query("attendance")
       .withIndex("by_date", (q) =>
         q.gte("dateKey", args.startDateKey).lte("dateKey", args.endDateKey)
       )
-      .filter((q) => q.eq(q.field("type"), "visitor"))
       .order("desc")
       .collect();
+
+    // Enrich member entries with user + department info (same as getDailyLog)
+    return await Promise.all(
+      entries.map(async (entry) => {
+        if (entry.type === "member" && entry.userId) {
+          const user = await ctx.db.get(entry.userId);
+          const dept = entry.departmentId
+            ? await ctx.db.get(entry.departmentId)
+            : null;
+          return {
+            ...entry,
+            displayName: user?.name ?? "Unknown Member",
+            departmentName: dept?.name ?? null,
+            departmentColor: dept?.colorTag ?? null,
+          };
+        }
+        return {
+          ...entry,
+          displayName: entry.visitorName ?? "Visitor",
+          departmentName: null,
+          departmentColor: null,
+        };
+      })
+    );
   },
 });

@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState, useMemo } from "react";
-import { Download, CalendarDays, Users, UserX } from "lucide-react";
+import { Download, CalendarDays, Users, BookOpen, UserX } from "lucide-react";
 import * as XLSX from "xlsx";
 
 // ── Date helpers ──────────────────────────────────────────────────────────
@@ -326,36 +326,39 @@ function SummaryTab({ clerkId }: { clerkId: string }) {
   );
 }
 
-// ── Visitors Tab ───────────────────────────────────────────────────────────
+// ── Office Log Tab (all entries: members + visitors) ───────────────────────
 
 function VisitorsTab({ clerkId }: { clerkId: string }) {
   const [startDateKey, setStartDateKey] = useState(nDaysAgo(29));
   const [endDateKey, setEndDateKey] = useState(todayIST());
 
-  const visitors = useQuery(api.attendance.getVisitorsByDateRange, {
+  const entries = useQuery(api.attendance.getEntriesByDateRange, {
     startDateKey,
     endDateKey,
     clerkId,
   });
 
   const handleExport = () => {
-    if (!visitors || visitors.length === 0) return;
+    if (!entries || entries.length === 0) return;
 
-    const rows = visitors.map((v) => ({
-      Name: v.visitorName ?? "",
-      Course: v.visitorCourse ?? "—",
-      Date: formatDate(v.dateKey),
-      Time: formatTime(v.checkedInAt),
+    const rows = entries.map((e) => ({
+      Type: e.type === "member" ? "Member" : "Visitor",
+      Name: e.displayName,
+      Department: e.departmentName ?? (e.type === "visitor" ? (e.visitorCourse ?? "—") : "—"),
+      Date: formatDate(e.dateKey),
+      Time: formatTime(e.checkedInAt),
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
-    // Column widths
-    ws["!cols"] = [{ wch: 28 }, { wch: 30 }, { wch: 18 }, { wch: 12 }];
+    ws["!cols"] = [{ wch: 10 }, { wch: 28 }, { wch: 24 }, { wch: 18 }, { wch: 12 }];
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Visitors");
-    XLSX.writeFile(wb, `visitors_${startDateKey}_to_${endDateKey}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Office Log");
+    XLSX.writeFile(wb, `office_log_${startDateKey}_to_${endDateKey}.xlsx`);
   };
+
+  const memberCount = entries?.filter((e) => e.type === "member").length ?? 0;
+  const visitorCount = entries?.filter((e) => e.type === "visitor").length ?? 0;
 
   return (
     <div className="space-y-5">
@@ -386,27 +389,27 @@ function VisitorsTab({ clerkId }: { clerkId: string }) {
         <button
           id="visitor-export-btn"
           onClick={handleExport}
-          disabled={!visitors || visitors.length === 0}
+          disabled={!entries || entries.length === 0}
           className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand text-white text-[13px] font-medium hover:bg-brand-mid transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download size={14} /> Export to Excel
         </button>
       </div>
 
-      {visitors === undefined ? (
+      {entries === undefined ? (
         <div className="skeleton h-48 rounded-2xl" />
-      ) : visitors.length === 0 ? (
+      ) : entries.length === 0 ? (
         <div className="card p-12 text-center space-y-2">
-          <UserX size={32} className="text-text-tertiary mx-auto" />
+          <BookOpen size={32} className="text-text-tertiary mx-auto" />
           <p className="text-text-secondary text-[14px]">
-            No visitor entries for this date range.
+            No logbook entries for this date range.
           </p>
         </div>
       ) : (
         <div className="card overflow-hidden">
           <div className="px-5 py-3 border-b border-border-light bg-bg-tertiary flex items-center justify-between">
             <span className="text-[12px] font-semibold text-text-tertiary uppercase tracking-wider">
-              {visitors.length} visitor{visitors.length !== 1 ? "s" : ""}
+              {memberCount} member{memberCount !== 1 ? "s" : ""} &middot; {visitorCount} visitor{visitorCount !== 1 ? "s" : ""}
             </span>
             <span className="text-[11px] text-text-tertiary">
               {formatDate(startDateKey)} → {formatDate(endDateKey)}
@@ -415,11 +418,14 @@ function VisitorsTab({ clerkId }: { clerkId: string }) {
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-border-light">
+                <th className="px-5 py-3 text-text-tertiary font-semibold text-left w-24">
+                  Type
+                </th>
                 <th className="px-5 py-3 text-text-tertiary font-semibold text-left">
                   Name
                 </th>
                 <th className="px-5 py-3 text-text-tertiary font-semibold text-left">
-                  Course / Programme
+                  Department / Course
                 </th>
                 <th className="px-5 py-3 text-text-tertiary font-semibold text-left">
                   Date
@@ -430,24 +436,49 @@ function VisitorsTab({ clerkId }: { clerkId: string }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light">
-              {visitors.map((v) => (
+              {entries.map((e) => (
                 <tr
-                  key={v._id}
+                  key={e._id}
                   className="hover:bg-bg-primary transition-colors"
                 >
+                  <td className="px-5 py-3">
+                    {e.type === "member" ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-brand-light text-brand">
+                        Member
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-bg-tertiary text-text-secondary">
+                        Visitor
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 font-medium text-text-primary">
-                    {v.visitorName}
+                    {e.displayName}
                   </td>
                   <td className="px-5 py-3 text-text-secondary">
-                    {v.visitorCourse ?? (
-                      <span className="text-text-tertiary">—</span>
+                    {e.type === "member" ? (
+                      e.departmentName ? (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                          style={{
+                            backgroundColor: (e.departmentColor ?? "#8B929A") + "18",
+                            color: e.departmentColor ?? "#8B929A",
+                          }}
+                        >
+                          {e.departmentName}
+                        </span>
+                      ) : (
+                        <span className="text-text-tertiary">—</span>
+                      )
+                    ) : (
+                      e.visitorCourse ?? <span className="text-text-tertiary">—</span>
                     )}
                   </td>
                   <td className="px-5 py-3 text-text-secondary">
-                    {formatDate(v.dateKey)}
+                    {formatDate(e.dateKey)}
                   </td>
                   <td className="px-5 py-3 text-right font-mono text-text-secondary">
-                    {formatTime(v.checkedInAt)}
+                    {formatTime(e.checkedInAt)}
                   </td>
                 </tr>
               ))}
@@ -516,8 +547,8 @@ export default function AttendanceDashboardPage() {
       ? [
           {
             key: "visitors" as Tab,
-            label: "Visitor Log",
-            icon: <UserX size={14} />,
+            label: "Office Log",
+            icon: <BookOpen size={14} />,
           },
         ]
       : []),
