@@ -1,19 +1,21 @@
 # E-Cell Weekly Reports
 
-Internal weekly reporting and operations platform for Woxsen University E-Cell.
+Internal weekly reporting, operations, and office logbook platform for Woxsen University E-Cell.
 
-The app replaces scattered WhatsApp updates, stale spreadsheets, and memory-based follow-ups with one structured workflow for department reports, leadership review, analytics, announcements, notifications, and exports.
+The app replaces scattered WhatsApp updates, stale spreadsheets, and memory-based follow-ups with one structured workflow for department reports, leadership review, analytics, announcements, notifications, exports, and a QR-code-based office attendance logbook.
 
 ## Product Overview
 
 E-Cell Reports is built around the way a student E-Cell actually works:
 
 - Department heads and team leads create one weekly report for their assigned department.
-- Core team, president, vice president, advisor, and admin users can create or edit reports across departments when needed.
+- Core team, president, vice president, and advisor users can create or edit reports across departments when needed.
 - Reports use department-specific templates with participation, task tracking, work completed, metrics, challenges, support needs, and next-week plans.
 - Drafts autosave while report owners work, and supporting files can be attached with optional notes.
 - Submitted reports become official weekly records, but authorized report managers can still make corrections after submission.
 - Leadership can review organization-wide progress, leave section-level comments, and export reports for review or archival.
+- Pending or delayed tasks and goals can be carried forward from the prior week's report into a new draft with one click.
+- An Office Logbook lets members and visitors check in via QR code, with an admin dashboard for attendance tracking and Excel export.
 
 ## Current Feature Map
 
@@ -26,13 +28,14 @@ E-Cell Reports is built around the way a student E-Cell actually works:
 | Dashboard | Department dashboard for members/heads, weekly status dashboard for leadership, and active announcements |
 | Reports | Searchable report list with status filters, department filters, draft/submitted routing, and attachment counts |
 | Report creation | `/reports/new` creates or reuses the current week's unfinished draft; leadership can pick any active department |
-| Report editor | Template-driven editor with autosave, section progress, attachments, post-submit saving, and submit confirmation |
+| Report editor | Template-driven editor with autosave, section progress, task carry-forward from prior week, attachments, post-submit saving, and submit confirmation |
 | Report viewer | Report view with comments, attachments, collapsible sections, Excel export, and PDF export |
 | Analytics | Leadership-only charts for reports, departments, status distribution, task status, and department ranking |
 | Team directory | Searchable directory of approved users and department assignments |
 | Settings | Profile details, current roles, role-change requests, and pending request cancellation |
 | Notifications | Report submission, comment, approval, pending-user, and role-request notifications |
 | Admin | Department creation/archive, user approvals, role requests, role changes, department assignment, deactivation, and announcements |
+| Office Logbook | QR-code-based member and visitor check-in, daily attendance log, member summary reports, and date-range office log with Excel export |
 
 ## Roles
 
@@ -68,7 +71,7 @@ Department head, team lead, or leadership user opens New Report
 Assigned department or selected department draft is created or reused
   |
   v
-Editor autosaves section data and attachments
+Editor autosaves section data and attachments; pending/delayed tasks can be carried forward from prior week
   |
   v
 Report manager submits
@@ -85,11 +88,14 @@ Important implementation details:
 - The current week starts on Monday.
 - `New Report` reuses an unfinished draft for the same department and week.
 - `New Report` does not route a user to an already submitted report.
+- Report editor offers one-click carry-forward of pending/delayed tasks and goals from the prior week's report.
 - Department members can only see submitted reports for their department.
 - Department heads and team leads can manage reports only for their own department.
 - Leadership users can view and manage reports across departments and leave section-level comments.
 - Attachments are stored in Convex storage and are limited to 3 MB after browser-side compression.
 - Excel and PDF exports include report data, leadership feedback, and attachment metadata.
+- Office check-in via QR code supports both authenticated members (with a 1-hour check-in cooldown) and anonymous visitors (with name and optional course; stored in localStorage for one-tap return).
+- The attendance admin dashboard provides three views: Daily Log (entries grouped by department for a date), Member Summary (attendance counts over 7/30/90-day ranges), and Office Log (all entries in a date range with Excel export).
 
 ## Default Departments
 
@@ -116,6 +122,7 @@ Default report templates are generated per department and include shared section
 | Auth | Clerk |
 | Backend | Convex queries, mutations, HTTP actions, and storage |
 | Charts | Recharts |
+| QR codes | `qrcode.react` |
 | Exports | `xlsx-js-style`, `xlsx`, `jspdf`, `jspdf-autotable` |
 | Attachments | Browser image/gzip compression plus Convex file storage |
 | Runtime/package manager | Bun |
@@ -130,6 +137,7 @@ app/
   providers.tsx                    Clerk + Convex provider setup
   globals.css                      Design tokens, utilities, and global styles
   onboarding/page.tsx              First-run profile completion
+  checkin/page.tsx                 QR-code office check-in (public; supports members and visitors)
   sign-in/                         Clerk sign-in route
   sign-up/                         Clerk sign-up route
   (app)/
@@ -147,6 +155,8 @@ app/
       page.tsx                     Department management
       users/page.tsx               User approvals, role requests, roles, deactivation, and department assignment
       announcements/page.tsx       Announcement publishing
+      attendance/page.tsx          Office logbook: daily log, member summary, and full office log with Excel export
+      attendance/qr/page.tsx       QR code generator for office check-in
 
 components/
   ecell-logo.tsx                   Shared logo component
@@ -159,10 +169,11 @@ convex/
   users.ts                         User sync, approvals, roles, role requests
   departments.ts                   Department CRUD and seed data
   templates.ts                     Report template generation
-  reports.ts                       Drafts, autosave, submit, attachments, history, metrics
+  reports.ts                       Drafts, autosave, submit, attachments, history, metrics, carry-forward
   comments.ts                      Section feedback and replies
   notifications.ts                 Notification listing and read state
   announcements.ts                 Announcement publishing and listing
+  attendance.ts                    Member and visitor check-in, daily log, attendance history, and date-range queries
 
 lib/
   attachments.ts                   Client-side attachment formatting and compression helpers
@@ -183,6 +194,7 @@ proxy.ts                           Next.js 16 Proxy route protection with Clerk
 | `comments` | Section-level leadership feedback, tags, replies, and resolved state |
 | `notifications` | Per-user report, comment, approval, and admin notifications |
 | `announcements` | Admin-published dashboard announcements |
+| `attendance` | Office logbook entries for member and visitor check-ins with date, time, and department info |
 
 ## Environment Variables
 
@@ -302,7 +314,7 @@ Typical flow:
 
 This app uses Next.js 16 `proxy.ts`, not the older `middleware.ts` convention. The Proxy file protects all non-public app routes with Clerk and redirects signed-in users away from auth routes.
 
-Backend permission checks currently protect the report and comment workflow:
+Backend permission checks currently protect the report, comment, and attendance workflow:
 
 - Report managers must be approved department heads or team leads for their own department, or approved leadership users managing reports across departments.
 - Leadership users can view all reports, create/edit reports across departments, access analytics, and comment on report sections.
@@ -318,6 +330,8 @@ Before using this outside a trusted internal environment, harden the remaining a
 - The app uses the App Router only. There is no `pages/` directory.
 - The report viewer creates Excel files in the browser with `xlsx-js-style` and PDFs with `jspdf` plus `jspdf-autotable`.
 - The report editor compresses oversized image attachments to WebP or attempts gzip compression before upload; files must still be 3 MB or smaller once stored.
+- The report editor offers one-click carry-forward of pending/delayed tasks and goals from the prior week's submitted report.
+- The Office Logbook uses QR codes (generated with `qrcode.react`) posted at the physical office entrance; members sign in with Clerk, visitors provide name and optional course.
 - There is no automated test suite in the repo yet.
 
 ## Deployment Checklist
@@ -332,7 +346,8 @@ Before production use:
 - Bootstrap the first admin, president, vice president, or advisor account.
 - Run `bun run lint`.
 - Run `bun run build`.
-- Test sign-up, onboarding, pending approval, admin approval, role requests, department assignment, report creation, autosave, attachment upload/download/removal, submit, post-submit editing, comments, exports, notifications, announcements, and analytics.
+- Test sign-up, onboarding, pending approval, admin approval, role requests, department assignment, report creation, autosave, attachment upload/download/removal, submit, post-submit editing, carry-forward, comments, exports, notifications, announcements, and analytics.
+- Test the Office Logbook: QR code generation, member check-in, visitor check-in, daily log, member summary, and office log export.
 - Add backend role checks to admin/department/announcement mutations before broader rollout.
 - Add webhook signature verification before trusting webhook traffic in production.
 
