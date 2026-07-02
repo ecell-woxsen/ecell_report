@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 
 const roleLabels: Record<string, string> = {
@@ -95,6 +96,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const isCoreTeam = convexUser?.roles?.some((r) =>
     ["core_team", "president", "vice_president", "advisor", "admin"].includes(r)
   );
+  const isDepartmentHead = convexUser?.roles?.includes("department_head");
 
   const needsOnboarding =
     convexUser === null ||
@@ -148,6 +150,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     { href: "/reports", icon: FileText, label: "Reports" },
     ...(isCoreTeam
       ? [{ href: "/analytics", icon: BarChart3, label: "Analytics" }]
+      : []),
+    ...((isCoreTeam || isDepartmentHead)
+      ? [{ href: "/attendance", icon: ClipboardList, label: "Logbook" }]
       : []),
     { href: "/team", icon: Users, label: "Team" },
     {

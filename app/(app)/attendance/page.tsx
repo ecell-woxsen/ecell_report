@@ -4,8 +4,9 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState, useMemo } from "react";
-import { Download, CalendarDays, Users, BookOpen, UserX } from "lucide-react";
+import { Download, CalendarDays, Users, BookOpen, UserX, QrCode } from "lucide-react";
 import * as XLSX from "xlsx";
+import { QRTab } from "./qr-tab";
 
 // ── Date helpers ──────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ const visitorViewerRoles = new Set([
 
 // ── Tab type ───────────────────────────────────────────────────────────────
 
-type Tab = "daily" | "summary" | "visitors";
+type Tab = "daily" | "summary" | "visitors" | "qr";
 
 // ── Daily Log Tab ──────────────────────────────────────────────────────────
 
@@ -536,11 +537,13 @@ export default function AttendanceDashboardPage() {
             label: "Daily Log",
             icon: <CalendarDays size={14} />,
           },
+          /*
           {
             key: "summary" as Tab,
             label: "Member Summary",
             icon: <Users size={14} />,
           },
+          */
         ]
       : []),
     ...(canViewVisitors
@@ -549,6 +552,15 @@ export default function AttendanceDashboardPage() {
             key: "visitors" as Tab,
             label: "Office Log",
             icon: <BookOpen size={14} />,
+          },
+        ]
+      : []),
+    ...(isLeadership
+      ? [
+          {
+            key: "qr" as Tab,
+            label: "QR Code",
+            icon: <QrCode size={14} />,
           },
         ]
       : []),
@@ -592,6 +604,7 @@ export default function AttendanceDashboardPage() {
       {effectiveTab === "daily" && <DailyLogTab clerkId={user!.id} />}
       {effectiveTab === "summary" && <SummaryTab clerkId={user!.id} />}
       {effectiveTab === "visitors" && <VisitorsTab clerkId={user!.id} />}
+      {effectiveTab === "qr" && <QRTab />}
     </div>
   );
 }

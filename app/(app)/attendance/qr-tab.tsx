@@ -1,8 +1,5 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { QRCodeSVG } from "qrcode.react";
 import { useState, useEffect } from "react";
 import { Copy, Check, Printer, RefreshCw } from "lucide-react";
@@ -15,13 +12,7 @@ function buildCheckinUrl(base: string) {
   return `${clean}/checkin`;
 }
 
-export default function AttendanceQRPage() {
-  const { user } = useUser();
-  const convexUser = useQuery(
-    api.users.getByClerkId,
-    user?.id ? { clerkId: user.id } : "skip"
-  );
-
+export function QRTab() {
   const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL);
   const [editingUrl, setEditingUrl] = useState(false);
   const [draftUrl, setDraftUrl] = useState(DEFAULT_BASE_URL);
@@ -34,35 +25,6 @@ export default function AttendanceQRPage() {
     setBaseUrl(DEFAULT_BASE_URL);
     setDraftUrl(DEFAULT_BASE_URL);
   }, []);
-
-  if (convexUser === undefined) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">
-          Office QR Code
-        </h1>
-        <div className="skeleton h-64 rounded-2xl" />
-      </div>
-    );
-  }
-
-  const isApproved = convexUser?.approved === true;
-  const isLeadership = isApproved && convexUser?.roles?.some((r) =>
-    ["core_team", "president", "vice_president", "advisor", "admin"].includes(r)
-  );
-
-  if (!isLeadership) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">
-          Office QR Code
-        </h1>
-        <div className="card p-10 text-center text-text-secondary text-[14px]">
-          Leadership access required to view this page.
-        </div>
-      </div>
-    );
-  }
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(checkinUrl);
@@ -78,9 +40,9 @@ export default function AttendanceQRPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-[1.65rem] font-bold text-text-primary tracking-tight">
+        <h2 className="text-[15px] font-semibold text-text-primary tracking-tight">
           Office QR Code
-        </h1>
+        </h2>
         <p className="text-text-tertiary text-[13px] mt-0.5">
           Print or screenshot this QR code and stick it on the office door.
           Members and visitors scan it to log their visit.
@@ -88,7 +50,7 @@ export default function AttendanceQRPage() {
       </div>
 
       {/* QR card — large and print-optimised */}
-      <div className="card p-10 flex flex-col items-center gap-6 print:shadow-none print:border-none">
+      <div className="card p-10 flex flex-col items-center gap-6 print:shadow-none print:border-none bg-white border border-border-light rounded-2xl">
         <div className="bg-white p-6 rounded-2xl border border-border-light shadow-sm">
           <QRCodeSVG
             id="office-qr-code"
@@ -187,7 +149,7 @@ export default function AttendanceQRPage() {
       </div>
 
       {/* Usage note */}
-      <div className="card p-5 space-y-2 print:hidden">
+      <div className="card p-5 space-y-2 print:hidden bg-white border border-border-light rounded-2xl">
         <h2 className="text-[13px] font-semibold text-text-primary">
           How to use
         </h2>
